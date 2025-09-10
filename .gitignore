@@ -35,11 +35,6 @@ data/
 *.sqlite
 *.sqlite3
 
-# 备份文件
-backup_*/
-*.bak
-*.backup
-
 # IDE 文件
 .vscode/
 .idea/
@@ -107,4 +102,3 @@ debug.test
 .vscode-test
 
 # 日志
-/logs/*.log
