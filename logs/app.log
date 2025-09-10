@@ -69,3 +69,7 @@
 2025-09-10T13:15:15.771+0800	[34mINFO[0m	routes/middleware.go:36	HTTP请求	{"client_ip": "127.0.0.1", "method": "GET", "path": "/health", "protocol": "HTTP/1.1", "status_code": 200, "latency": "5.173083ms", "user_agent": "curl/8.7.1"}
 2025-09-10T13:15:15.792+0800	[34mINFO[0m	server/main.go:108	服务器正在关闭...
 2025-09-10T13:15:15.792+0800	[34mINFO[0m	server/main.go:118	服务器已关闭
+2025-09-10T14:25:05.241+0800	[34mINFO[0m	server/main.go:44	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
+2025-09-10T14:25:05.312+0800	[34mINFO[0m	server/main.go:97	HTTP服务器启动	{"port": 8080}
+2025-09-10T14:25:07.398+0800	[34mINFO[0m	server/main.go:108	服务器正在关闭...
+2025-09-10T14:25:07.399+0800	[34mINFO[0m	server/main.go:118	服务器已关闭
