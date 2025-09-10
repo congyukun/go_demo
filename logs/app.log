@@ -6,3 +6,66 @@
 2025-09-10T10:38:35.411+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
 2025-09-10T10:38:35.425+0800	[34mINFO[0m	db/mysql.go:82	MySQL连接初始化成功	{"max_open_conns": 100, "max_idle_conns": 20, "log_mode": true}
 2025-09-10T10:38:35.426+0800	[34mINFO[0m	go_demo/main.go:48	服务启动在端口: :8080
+2025-09-10T11:29:12.021+0800	[34mINFO[0m	go_demo/main.go:31	应用启动中...	{"app_name": "demo-service", "version": "1.0.0", "env": "dev", "port": 8080}
+2025-09-10T11:29:12.021+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
+2025-09-10T11:29:12.095+0800	[34mINFO[0m	db/mysql.go:82	MySQL连接初始化成功	{"max_open_conns": 100, "max_idle_conns": 20, "log_mode": true}
+2025-09-10T11:29:12.095+0800	[34mINFO[0m	routes/router.go:25	路由中间件初始化完成
+2025-09-10T11:29:12.095+0800	[34mINFO[0m	routes/router.go:76	路由初始化完成	{"user_routes": 5, "article_routes": 5, "auth_routes": 3}
+2025-09-10T11:29:12.095+0800	[34mINFO[0m	go_demo/main.go:48	服务启动在端口: :8080
+2025-09-10T11:29:12.095+0800	[31mFATAL[0m	go_demo/main.go:50	服务启动失败	{"error": "listen tcp :8080: bind: address already in use"}
+2025-09-10T11:29:38.159+0800	[34mINFO[0m	go_demo/main.go:31	应用启动中...	{"app_name": "demo-service", "version": "1.0.0", "env": "dev", "port": 8081}
+2025-09-10T11:29:38.159+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
+2025-09-10T11:29:38.171+0800	[34mINFO[0m	db/mysql.go:82	MySQL连接初始化成功	{"max_open_conns": 100, "max_idle_conns": 20, "log_mode": true}
+2025-09-10T11:29:38.171+0800	[34mINFO[0m	routes/router.go:25	路由中间件初始化完成
+2025-09-10T11:29:38.171+0800	[34mINFO[0m	routes/router.go:76	路由初始化完成	{"user_routes": 5, "article_routes": 5, "auth_routes": 3}
+2025-09-10T11:29:38.171+0800	[34mINFO[0m	go_demo/main.go:48	服务启动在端口: :8081
+2025-09-10T11:30:33.761+0800	[34mINFO[0m	go_demo/main.go:31	应用启动中...	{"app_name": "demo-service", "version": "1.0.0", "env": "dev", "port": 8081}
+2025-09-10T11:30:33.761+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
+2025-09-10T11:30:33.789+0800	[34mINFO[0m	db/mysql.go:82	MySQL连接初始化成功	{"max_open_conns": 100, "max_idle_conns": 20, "log_mode": true}
+2025-09-10T11:30:33.789+0800	[34mINFO[0m	routes/router.go:25	路由中间件初始化完成
+2025-09-10T11:30:33.789+0800	[34mINFO[0m	routes/router.go:76	路由初始化完成	{"user_routes": 5, "article_routes": 5, "auth_routes": 3}
+2025-09-10T11:30:33.789+0800	[34mINFO[0m	go_demo/main.go:48	服务启动在端口: :8081
+2025-09-10T11:30:33.789+0800	[31mFATAL[0m	go_demo/main.go:50	服务启动失败	{"error": "listen tcp :8081: bind: address already in use"}
+2025-09-10T11:43:08.873+0800	[34mINFO[0m	go_demo/main.go:31	应用启动中...	{"app_name": "demo-service", "version": "1.0.0", "env": "dev", "port": 8081}
+2025-09-10T11:43:08.874+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
+2025-09-10T11:43:08.908+0800	[34mINFO[0m	db/mysql.go:82	MySQL连接初始化成功	{"max_open_conns": 100, "max_idle_conns": 20, "log_mode": true}
+2025-09-10T11:43:08.908+0800	[34mINFO[0m	routes/router.go:26	路由中间件初始化完成
+2025-09-10T11:43:08.908+0800	[34mINFO[0m	routes/router.go:80	路由初始化完成	{"user_routes": 5, "article_routes": 5, "auth_routes": 3}
+2025-09-10T11:43:08.908+0800	[34mINFO[0m	go_demo/main.go:48	服务启动在端口: :8081
+2025-09-10T11:43:08.908+0800	[31mFATAL[0m	go_demo/main.go:50	服务启动失败	{"error": "listen tcp :8081: bind: address already in use"}
+2025-09-10T11:43:29.830+0800	[34mINFO[0m	go_demo/main.go:31	应用启动中...	{"app_name": "demo-service", "version": "1.0.0", "env": "dev", "port": 8081}
+2025-09-10T11:43:29.831+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
+2025-09-10T11:43:29.838+0800	[34mINFO[0m	db/mysql.go:82	MySQL连接初始化成功	{"max_open_conns": 100, "max_idle_conns": 20, "log_mode": true}
+2025-09-10T11:43:29.838+0800	[34mINFO[0m	routes/router.go:26	路由中间件初始化完成
+2025-09-10T11:43:29.838+0800	[34mINFO[0m	routes/router.go:80	路由初始化完成	{"user_routes": 5, "article_routes": 5, "auth_routes": 3}
+2025-09-10T11:43:29.838+0800	[34mINFO[0m	go_demo/main.go:48	服务启动在端口: :8081
+2025-09-10T11:43:29.838+0800	[31mFATAL[0m	go_demo/main.go:50	服务启动失败	{"error": "listen tcp :8081: bind: address already in use"}
+2025-09-10T11:44:00.916+0800	[34mINFO[0m	go_demo/main.go:31	应用启动中...	{"app_name": "demo-service", "version": "1.0.0", "env": "dev", "port": 8081}
+2025-09-10T11:44:00.918+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
+2025-09-10T11:44:00.931+0800	[34mINFO[0m	db/mysql.go:82	MySQL连接初始化成功	{"max_open_conns": 100, "max_idle_conns": 20, "log_mode": true}
+2025-09-10T11:44:00.931+0800	[34mINFO[0m	routes/router.go:26	路由中间件初始化完成
+2025-09-10T11:44:00.932+0800	[34mINFO[0m	routes/router.go:80	路由初始化完成	{"user_routes": 5, "article_routes": 5, "auth_routes": 3}
+2025-09-10T11:44:00.932+0800	[34mINFO[0m	go_demo/main.go:48	服务启动在端口: :8081
+2025-09-10T11:44:32.553+0800	[34mINFO[0m	controllers/login_controller.go:44	用户登录请求	{"request_id": "20250910114432-AIIIII", "username": "admin", "client_ip": "127.0.0.1", "user_agent": "curl/8.7.1"}
+2025-09-10T11:44:32.553+0800	[34mINFO[0m	controllers/login_controller.go:68	用户登录成功	{"request_id": "20250910114432-AIIIII", "username": "admin", "user_id": 1, "client_ip": "127.0.0.1", "expires_at": "2025-09-11T11:44:32.553+0800"}
+2025-09-10T11:44:32.553+0800	[34mINFO[0m	routes/middleware.go:36	HTTP请求	{"client_ip": "127.0.0.1", "method": "POST", "path": "/api/v1/auth/login", "protocol": "HTTP/1.1", "status_code": 200, "latency": "3.424959ms", "user_agent": "curl/8.7.1"}
+2025-09-10T11:44:35.311+0800	[34mINFO[0m	controllers/login_controller.go:44	用户登录请求	{"request_id": "20250910114435-WWWWWW", "username": "admin", "client_ip": "127.0.0.1", "user_agent": "curl/8.7.1"}
+2025-09-10T11:44:35.311+0800	[34mINFO[0m	controllers/login_controller.go:68	用户登录成功	{"request_id": "20250910114435-WWWWWW", "username": "admin", "user_id": 1, "client_ip": "127.0.0.1", "expires_at": "2025-09-11T11:44:35.311+0800"}
+2025-09-10T11:44:35.311+0800	[34mINFO[0m	routes/middleware.go:36	HTTP请求	{"client_ip": "127.0.0.1", "method": "POST", "path": "/api/v1/auth/login", "protocol": "HTTP/1.1", "status_code": 200, "latency": "426.167µs", "user_agent": "curl/8.7.1"}
+2025-09-10T11:44:47.556+0800	[34mINFO[0m	controllers/user_controller.go:30	获取用户列表请求	{"request_id": "20250910114447-yyyyyy", "client_ip": "127.0.0.1"}
+2025-09-10T11:44:47.557+0800	[34mINFO[0m	routes/middleware.go:36	HTTP请求	{"client_ip": "127.0.0.1", "method": "GET", "path": "/api/v1/users", "protocol": "HTTP/1.1", "status_code": 200, "latency": "373.334µs", "user_agent": "curl/8.7.1"}
+2025-09-10T11:45:01.917+0800	[34mINFO[0m	controllers/login_controller.go:159	用户注册请求	{"request_id": "20250910114501-kkkkkk", "username": "testuser", "email": "test@example.com", "name": "测试用户", "client_ip": "127.0.0.1"}
+2025-09-10T11:45:01.918+0800	[34mINFO[0m	controllers/login_controller.go:183	用户注册成功	{"request_id": "20250910114501-kkkkkk", "username": "testuser", "email": "test@example.com", "user_id": 5, "client_ip": "127.0.0.1"}
+2025-09-10T11:45:01.918+0800	[34mINFO[0m	routes/middleware.go:36	HTTP请求	{"client_ip": "127.0.0.1", "method": "POST", "path": "/api/v1/auth/register", "protocol": "HTTP/1.1", "status_code": 201, "latency": "2.165416ms", "user_agent": "curl/8.7.1"}
+2025-09-10T13:06:52.522+0800	[34mINFO[0m	server/main.go:43	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
+2025-09-10T13:06:52.570+0800	[34mINFO[0m	server/main.go:95	HTTP服务器启动	{"port": 8081}
+2025-09-10T13:06:52.570+0800	[31mFATAL[0m	server/main.go:97	服务器启动失败	{"error": "listen tcp :8081: bind: address already in use"}
+2025-09-10T13:12:39.863+0800	[34mINFO[0m	server/main.go:43	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
+2025-09-10T13:12:39.910+0800	[34mINFO[0m	server/main.go:95	HTTP服务器启动	{"port": 8081}
+2025-09-10T13:12:39.910+0800	[31mFATAL[0m	server/main.go:97	服务器启动失败	{"error": "listen tcp :8081: bind: address already in use"}
+2025-09-10T13:15:13.542+0800	[34mINFO[0m	server/main.go:44	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
+2025-09-10T13:15:13.589+0800	[34mINFO[0m	server/main.go:97	HTTP服务器启动	{"port": 8080}
+2025-09-10T13:15:15.768+0800	[34mINFO[0m	routes/router.go:93	健康检查请求	{"request_id": "20250910131515-yuCCCC", "client_ip": "127.0.0.1"}
+2025-09-10T13:15:15.771+0800	[34mINFO[0m	routes/middleware.go:36	HTTP请求	{"client_ip": "127.0.0.1", "method": "GET", "path": "/health", "protocol": "HTTP/1.1", "status_code": 200, "latency": "5.173083ms", "user_agent": "curl/8.7.1"}
+2025-09-10T13:15:15.792+0800	[34mINFO[0m	server/main.go:108	服务器正在关闭...
+2025-09-10T13:15:15.792+0800	[34mINFO[0m	server/main.go:118	服务器已关闭

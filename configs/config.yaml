@@ -1,6 +1,6 @@
 # 应用基础配置
 app:
-  name: "demo-service"
+  name: "go-demo"
   env: "dev"  # 环境：dev(开发)、test(测试)、prod(生产)
   version: "1.0.0"
 
@@ -68,4 +68,4 @@ log:
   max_size: 100  # 单个日志文件大小(MB)
   max_backup: 10  # 最大备份数
   max_age: 7  # 最大保留天数
-  compress: false  # 是否压缩    
+  compress: false  # 是否压缩

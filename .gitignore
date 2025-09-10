@@ -1,0 +1,96 @@
+# 编译输出
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+go_demo
+
+# 测试输出
+*.test
+*.out
+coverage.out
+coverage.html
+
+# 依赖目录
+vendor/
+
+# Go 工作空间文件
+go.work
+
+# 日志文件
+logs/
+*.log
+
+# 配置文件（可能包含敏感信息）
+configs/config.local.yaml
+configs/config.prod.yaml
+.env
+.env.local
+
+# 数据文件
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# 备份文件
+backup_*/
+*.bak
+*.backup
+
+# IDE 文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 构建缓存
+.cache/
+
+# Air 热重载工具
+tmp/
+
+# Docker 相关
+.dockerignore
+
+# 证书文件
+*.pem
+*.key
+*.crt
+
+# 压缩文件
+*.tar.gz
+*.zip
+*.rar
+
+# 文档生成
+docs/swagger/
+
+# 性能分析文件
+*.prof
+*.pprof
+
+# 调试文件
+debug
+debug.test

@@ -2,7 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"go_demo/config"
 	"os"
 	"path/filepath"
 
@@ -11,13 +10,24 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var Logger *zap.Logger
-var SugaredLogger *zap.SugaredLogger
+var (
+	Logger        *zap.Logger
+	SugaredLogger *zap.SugaredLogger
+)
 
-// InitZapLogger 初始化zap日志
-func InitZapLogger() error {
-	cfg := config.GlobalConfig.Log
+// LogConfig 日志配置
+type LogConfig struct {
+	Level      string `yaml:"level"`
+	Format     string `yaml:"format"`
+	OutputPath string `yaml:"output_path"`
+	MaxSize    int    `yaml:"max_size"`
+	MaxBackup  int    `yaml:"max_backup"`
+	MaxAge     int    `yaml:"max_age"`
+	Compress   bool   `yaml:"compress"`
+}
 
+// Init 初始化日志
+func Init(cfg LogConfig) error {
 	// 创建日志目录
 	logDir := filepath.Dir(cfg.OutputPath)
 	if err := os.MkdirAll(logDir, 0755); err != nil {
@@ -51,11 +61,11 @@ func InitZapLogger() error {
 	// 配置日志轮转
 	fileWriter := &lumberjack.Logger{
 		Filename:   cfg.OutputPath,
-		MaxSize:    cfg.MaxSize,    // MB
-		MaxBackups: cfg.MaxBackup,  // 保留旧文件的最大个数
-		MaxAge:     cfg.MaxAge,     // 保留旧文件的最大天数
-		Compress:   cfg.Compress,   // 是否压缩/归档旧文件
-		LocalTime:  true,           // 使用本地时间
+		MaxSize:    cfg.MaxSize,   // MB
+		MaxBackups: cfg.MaxBackup, // 保留旧文件的最大个数
+		MaxAge:     cfg.MaxAge,    // 保留旧文件的最大天数
+		Compress:   cfg.Compress,  // 是否压缩/归档旧文件
+		LocalTime:  true,          // 使用本地时间
 	}
 
 	// 创建写入器
@@ -149,4 +159,33 @@ func Errorf(template string, args ...interface{}) {
 
 func Fatalf(template string, args ...interface{}) {
 	SugaredLogger.Fatalf(template, args...)
+}
+
+// 字段构造函数
+func String(key, val string) zap.Field {
+	return zap.String(key, val)
+}
+
+func Int(key string, val int) zap.Field {
+	return zap.Int(key, val)
+}
+
+func Int64(key string, val int64) zap.Field {
+	return zap.Int64(key, val)
+}
+
+func Float64(key string, val float64) zap.Field {
+	return zap.Float64(key, val)
+}
+
+func Bool(key string, val bool) zap.Field {
+	return zap.Bool(key, val)
+}
+
+func Any(key string, val interface{}) zap.Field {
+	return zap.Any(key, val)
+}
+
+func Err(err error) zap.Field {
+	return zap.Error(err)
 }
