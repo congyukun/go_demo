@@ -45,6 +45,7 @@ func (r *Router) setupMiddleware() {
 	// 自定义中间件
 	r.engine.Use(handler.RequestIDMiddleware())
 	r.engine.Use(handler.CORSMiddleware())
+	r.engine.Use(handler.RequestLogMiddleware()) // 添加请求日志中间件
 }
 
 // setupRoutes 设置路由

@@ -94,13 +94,14 @@ type RedisConfig struct {
 
 // LogConfig 日志配置
 type LogConfig struct {
-	Level      string `yaml:"level"`
-	Format     string `yaml:"format"`
-	OutputPath string `yaml:"output_path"`
-	MaxSize    int    `yaml:"max_size"`
-	MaxBackup  int    `yaml:"max_backup"`
-	MaxAge     int    `yaml:"max_age"`
-	Compress   bool   `yaml:"compress"`
+	Level       string `yaml:"level"`
+	Format      string `yaml:"format"`
+	OutputPath  string `yaml:"output_path"`
+	ReqLogPath  string `yaml:"req_log_path"`
+	MaxSize     int    `yaml:"max_size"`
+	MaxBackup   int    `yaml:"max_backup"`
+	MaxAge      int    `yaml:"max_age"`
+	Compress    bool   `yaml:"compress"`
 }
 
 var GlobalConfig *Config

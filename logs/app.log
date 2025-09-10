@@ -73,3 +73,35 @@
 2025-09-10T14:25:05.312+0800	[34mINFO[0m	server/main.go:97	HTTP服务器启动	{"port": 8080}
 2025-09-10T14:25:07.398+0800	[34mINFO[0m	server/main.go:108	服务器正在关闭...
 2025-09-10T14:25:07.399+0800	[34mINFO[0m	server/main.go:118	服务器已关闭
+2025-09-10T18:44:41.528+0800	[34mINFO[0m	server/main.go:45	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
+2025-09-10T18:44:41.608+0800	[34mINFO[0m	server/main.go:72	验证器初始化成功
+2025-09-10T18:44:41.608+0800	[34mINFO[0m	server/main.go:104	HTTP服务器启动	{"port": 8080}
+2025-09-10T18:44:45.287+0800	[34mINFO[0m	handler/request_log_middleware.go:56	req	{"request_id": "48ad75c5-50bb-0693-4f2e-466913956232", "method": "POST", "path": "/api/v1/auth/register", "client_ip": "127.0.0.1", "user_agent": "PostmanRuntime-ApipostRuntime/1.1.0", "query_params": {}, "path_params": {}, "request_body": "{\n    \"username\": \"yukun111\",\n    \"password\": \"12345\",\n    \"name\": \"测试用户\",\n    \"mobile\": \"13812341618\"\n  }", "phase": "request"}
+2025-09-10T18:44:45.288+0800	[33mWARN[0m	handler/auth_handler.go:73	注册参数验证失败	{"request_id": "48ad75c5-50bb-0693-4f2e-466913956232", "client_ip": "127.0.0.1"}
+2025-09-10T18:44:45.289+0800	[34mINFO[0m	handler/request_log_middleware.go:85	req	{"request_id": "48ad75c5-50bb-0693-4f2e-466913956232", "method": "POST", "path": "/api/v1/auth/register", "status_code": 400, "duration": "1.680291ms", "response_body": {"code":400,"message":"密码长度不能少于6个字符","request_id":"48ad75c5-50bb-0693-4f2e-466913956232"}, "phase": "response"}
+2025-09-10T18:45:48.567+0800	[34mINFO[0m	server/main.go:115	服务器正在关闭...
+2025-09-10T18:45:48.567+0800	[34mINFO[0m	server/main.go:125	服务器已关闭
+2025-09-10T18:46:04.912+0800	[34mINFO[0m	server/main.go:45	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
+2025-09-10T18:46:04.925+0800	[34mINFO[0m	server/main.go:72	验证器初始化成功
+2025-09-10T18:46:04.925+0800	[34mINFO[0m	server/main.go:104	HTTP服务器启动	{"port": 8080}
+2025-09-10T18:46:33.482+0800	[34mINFO[0m	handler/request_log_middleware.go:56	req	{"request_id": "e0ef114a-8b61-3949-dc5d-f89dc10a44d7", "method": "POST", "path": "/api/v1/auth/login", "client_ip": "127.0.0.1", "user_agent": "curl/8.7.1", "query_params": {}, "path_params": {}, "request_body": "{\"username\":\"testuser\",\"password\":\"testpass\"}", "phase": "request"}
+2025-09-10T18:46:33.483+0800	[34mINFO[0m	handler/auth_handler.go:37	用户登录请求	{"request_id": "e0ef114a-8b61-3949-dc5d-f89dc10a44d7", "username": "testuser", "client_ip": "127.0.0.1", "user_agent": "curl/8.7.1"}
+2025-09-10T18:46:33.518+0800	[33mWARN[0m	handler/auth_handler.go:47	登录失败	{"request_id": "e0ef114a-8b61-3949-dc5d-f89dc10a44d7", "username": "testuser", "client_ip": "127.0.0.1", "error": "用户名或密码错误"}
+2025-09-10T18:46:33.519+0800	[34mINFO[0m	handler/request_log_middleware.go:85	req	{"request_id": "e0ef114a-8b61-3949-dc5d-f89dc10a44d7", "method": "POST", "path": "/api/v1/auth/login", "status_code": 401, "duration": "36.131375ms", "response_body": {"code":401,"message":"用户名或密码错误","request_id":"e0ef114a-8b61-3949-dc5d-f89dc10a44d7"}, "phase": "response"}
+2025-09-10T18:50:08.794+0800	[34mINFO[0m	server/main.go:115	服务器正在关闭...
+2025-09-10T18:50:08.794+0800	[34mINFO[0m	server/main.go:125	服务器已关闭
+2025-09-10T18:50:13.382+0800	[34mINFO[0m	server/main.go:45	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
+2025-09-10T18:50:13.403+0800	[34mINFO[0m	server/main.go:72	验证器初始化成功
+2025-09-10T18:50:13.403+0800	[34mINFO[0m	server/main.go:104	HTTP服务器启动	{"port": 8080}
+2025-09-10T18:50:23.828+0800	[34mINFO[0m	logger/logger.go:180	req	{"request_id": "af623967-7793-7300-71ee-396f29f9974c", "method": "POST", "path": "/api/v1/auth/login", "client_ip": "127.0.0.1", "user_agent": "curl/8.7.1", "query_params": {}, "path_params": {}, "request_body": "{\"username\":\"testuser\",\"password\":\"testpass\"}", "phase": "request"}
+2025-09-10T18:50:23.828+0800	[34mINFO[0m	handler/auth_handler.go:37	用户登录请求	{"request_id": "af623967-7793-7300-71ee-396f29f9974c", "username": "testuser", "client_ip": "127.0.0.1", "user_agent": "curl/8.7.1"}
+2025-09-10T18:50:23.838+0800	[33mWARN[0m	handler/auth_handler.go:47	登录失败	{"request_id": "af623967-7793-7300-71ee-396f29f9974c", "username": "testuser", "client_ip": "127.0.0.1", "error": "用户名或密码错误"}
+2025-09-10T18:50:23.839+0800	[34mINFO[0m	logger/logger.go:180	req	{"request_id": "af623967-7793-7300-71ee-396f29f9974c", "method": "POST", "path": "/api/v1/auth/login", "status_code": 401, "duration": "11.091334ms", "response_body": {"code":401,"message":"用户名或密码错误","request_id":"af623967-7793-7300-71ee-396f29f9974c"}, "phase": "response"}
+2025-09-10T18:52:27.839+0800	[34mINFO[0m	server/main.go:115	服务器正在关闭...
+2025-09-10T18:52:27.839+0800	[34mINFO[0m	server/main.go:125	服务器已关闭
+2025-09-10T18:52:37.447+0800	[34mINFO[0m	server/main.go:46	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
+2025-09-10T18:52:37.471+0800	[34mINFO[0m	server/main.go:73	验证器初始化成功
+2025-09-10T18:52:37.471+0800	[34mINFO[0m	server/main.go:105	HTTP服务器启动	{"port": 8080}
+2025-09-10T18:52:44.310+0800	[33mWARN[0m	handler/auth_handler.go:73	注册参数验证失败	{"request_id": "c9c3418e-50d2-5141-2495-e71891dee58d", "client_ip": "127.0.0.1"}
+2025-09-10T18:53:34.420+0800	[34mINFO[0m	handler/auth_handler.go:37	用户登录请求	{"request_id": "81feec7a-bc51-3a3b-211d-3a84074ac3ff", "username": "testuser", "client_ip": "127.0.0.1", "user_agent": "curl/8.7.1"}
+2025-09-10T18:53:34.428+0800	[33mWARN[0m	handler/auth_handler.go:47	登录失败	{"request_id": "81feec7a-bc51-3a3b-211d-3a84074ac3ff", "username": "testuser", "client_ip": "127.0.0.1", "error": "用户名或密码错误"}

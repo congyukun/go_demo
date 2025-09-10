@@ -29,13 +29,14 @@ func main() {
 
 	// 初始化日志
 	logConfig := logger.LogConfig{
-		Level:      cfg.Log.Level,
-		Format:     cfg.Log.Format,
-		OutputPath: cfg.Log.OutputPath,
-		MaxSize:    cfg.Log.MaxSize,
-		MaxBackup:  cfg.Log.MaxBackup,
-		MaxAge:     cfg.Log.MaxAge,
-		Compress:   cfg.Log.Compress,
+		Level:       cfg.Log.Level,
+		Format:      cfg.Log.Format,
+		OutputPath:  cfg.Log.OutputPath,
+		ReqLogPath:  cfg.Log.ReqLogPath,
+		MaxSize:     cfg.Log.MaxSize,
+		MaxBackup:   cfg.Log.MaxBackup,
+		MaxAge:      cfg.Log.MaxAge,
+		Compress:    cfg.Log.Compress,
 	}
 	if err := logger.Init(logConfig); err != nil {
 		panic(fmt.Sprintf("初始化日志失败: %v", err))

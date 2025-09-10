@@ -64,7 +64,8 @@ redis:
 log:
   level: "info"  # debug/info/warn/error/dpanic/panic/fatal
   format: "console"  # console/json
-  output_path: "logs/app.log"  # 日志输出文件
+  output_path: "logs/app.log"  # 应用日志输出文件
+  req_log_path: "logs/req.log"  # 请求日志输出文件
   max_size: 100  # 单个日志文件大小(MB)
   max_backup: 10  # 最大备份数
   max_age: 7  # 最大保留天数

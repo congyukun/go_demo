@@ -13,17 +13,19 @@ import (
 var (
 	Logger        *zap.Logger
 	SugaredLogger *zap.SugaredLogger
+	ReqLogger     *zap.Logger // 专门用于请求日志的logger
 )
 
 // LogConfig 日志配置
 type LogConfig struct {
-	Level      string `yaml:"level"`
-	Format     string `yaml:"format"`
-	OutputPath string `yaml:"output_path"`
-	MaxSize    int    `yaml:"max_size"`
-	MaxBackup  int    `yaml:"max_backup"`
-	MaxAge     int    `yaml:"max_age"`
-	Compress   bool   `yaml:"compress"`
+	Level       string `yaml:"level"`
+	Format      string `yaml:"format"`
+	OutputPath  string `yaml:"output_path"`
+	ReqLogPath  string `yaml:"req_log_path"`
+	MaxSize     int    `yaml:"max_size"`
+	MaxBackup   int    `yaml:"max_backup"`
+	MaxAge      int    `yaml:"max_age"`
+	Compress    bool   `yaml:"compress"`
 }
 
 // Init 初始化日志
@@ -32,6 +34,14 @@ func Init(cfg LogConfig) error {
 	logDir := filepath.Dir(cfg.OutputPath)
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return fmt.Errorf("创建日志目录失败: %w", err)
+	}
+
+	// 创建请求日志目录
+	if cfg.ReqLogPath != "" {
+		reqLogDir := filepath.Dir(cfg.ReqLogPath)
+		if err := os.MkdirAll(reqLogDir, 0755); err != nil {
+			return fmt.Errorf("创建请求日志目录失败: %w", err)
+		}
 	}
 
 	// 设置日志级别
@@ -58,7 +68,7 @@ func Init(cfg LogConfig) error {
 		encoder = zapcore.NewConsoleEncoder(encoderConfig)
 	}
 
-	// 配置日志轮转
+	// 配置主日志轮转
 	fileWriter := &lumberjack.Logger{
 		Filename:   cfg.OutputPath,
 		MaxSize:    cfg.MaxSize,   // MB
@@ -78,9 +88,34 @@ func Init(cfg LogConfig) error {
 		zapcore.NewCore(encoder, fileWriterSync, level), // 文件输出
 	)
 
-	// 创建logger
+	// 创建主logger
 	Logger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
 	SugaredLogger = Logger.Sugar()
+
+	// 如果配置了请求日志路径，则创建请求日志logger
+	if cfg.ReqLogPath != "" {
+		// 配置请求日志轮转
+		reqFileWriter := &lumberjack.Logger{
+			Filename:   cfg.ReqLogPath,
+			MaxSize:    cfg.MaxSize,   // MB
+			MaxBackups: cfg.MaxBackup, // 保留旧文件的最大个数
+			MaxAge:     cfg.MaxAge,    // 保留旧文件的最大天数
+			Compress:   cfg.Compress,  // 是否压缩/归档旧文件
+			LocalTime:  true,          // 使用本地时间
+		}
+
+		// 创建请求日志写入器
+		reqFileWriterSync := zapcore.AddSync(reqFileWriter)
+
+		// 创建请求日志核心
+		reqCore := zapcore.NewTee(
+			zapcore.NewCore(encoder, consoleWriter, level),        // 控制台输出
+			zapcore.NewCore(encoder, reqFileWriterSync, level),    // 请求日志文件输出
+		)
+
+		// 创建请求日志logger
+		ReqLogger = zap.New(reqCore, zap.AddCaller(), zap.AddCallerSkip(1))
+	}
 
 	return nil
 }
@@ -134,6 +169,16 @@ func Warn(msg string, fields ...zap.Field) {
 
 func Error(msg string, fields ...zap.Field) {
 	Logger.Error(msg, fields...)
+}
+
+// ReqInfo 请求日志信息级别
+func ReqInfo(msg string, fields ...zap.Field) {
+	if ReqLogger != nil {
+		ReqLogger.Info(msg, fields...)
+	} else {
+		// 如果没有专门的请求日志logger，则使用主logger
+		Info(msg, fields...)
+	}
 }
 
 func Fatal(msg string, fields ...zap.Field) {
