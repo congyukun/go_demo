@@ -12,8 +12,9 @@ type LoginRequest struct {
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required" validate:"required,min=3,max=20"`
 	Password string `json:"password" binding:"required" validate:"required,min=6"`
-	Email    string `json:"email" binding:"required" validate:"required,email"`
+	Email    string `json:"email" binding:"omitempty" validate:"omitempty,email"`
 	Name     string `json:"name" binding:"required" validate:"required,min=1,max=50"`
+	Mobile   string `json:"mobile" binding:"required" validate:"required,mobile"`
 }
 
 // LoginResponse 登录响应结构体

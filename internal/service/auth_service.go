@@ -70,6 +70,7 @@ func (s *authService) Login(req models.LoginRequest) (*models.LoginResponse, err
 
 // Register 用户注册
 func (s *authService) Register(req models.RegisterRequest) (*models.UserResponse, error) {
+
 	// 检查用户名是否已存在
 	if _, err := s.userRepo.GetByUsername(req.Username); err == nil {
 		return nil, fmt.Errorf("用户名已存在")
@@ -77,20 +78,20 @@ func (s *authService) Register(req models.RegisterRequest) (*models.UserResponse
 		return nil, fmt.Errorf("检查用户名失败: %w", err)
 	}
 
-	// 检查邮箱是否已存在
-	if _, err := s.userRepo.GetByEmail(req.Email); err == nil {
-		return nil, fmt.Errorf("邮箱已存在")
+	// 检查电话号是否已存在
+	if _, err := s.userRepo.GetByMobile(req.Mobile); err == nil {
+		return nil, fmt.Errorf("手机号已存在")
 	} else if err != gorm.ErrRecordNotFound {
-		return nil, fmt.Errorf("检查邮箱失败: %w", err)
+		return nil, fmt.Errorf("检查手机号失败: %w", err)
 	}
 
 	// 创建用户
 	user := &models.User{
 		Username: req.Username,
-		Email:    req.Email,
 		Name:     req.Name,
 		Password: s.hashPassword(req.Password),
 		Status:   1,
+		Mobile:   req.Mobile,
 	}
 
 	if err := s.userRepo.Create(user); err != nil {

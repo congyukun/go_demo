@@ -12,6 +12,7 @@ type UserRepository interface {
 	GetByID(id int) (*models.User, error)
 	GetByUsername(username string) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
+	GetByMobile(mobile string) (*models.User, error)
 	Update(user *models.User) error
 	Delete(id int) error
 	List(offset, limit int) ([]*models.User, int64, error)
@@ -56,6 +57,17 @@ func (r *userRepository) GetByUsername(username string) (*models.User, error) {
 func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("email = ?", email).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// GetByMobile 根据手机号获取用户
+
+func(r *userRepository) GetByMobile(mobile string) (*models.User, error) {
+	var user models.User
+	err := r.db.Where("mobile = ?", mobile).First(&user).Error
 	if err != nil {
 		return nil, err
 	}

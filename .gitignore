@@ -94,3 +94,17 @@ docs/swagger/
 # 调试文件
 debug
 debug.test
+
+# 临时文件
+*.tmp
+*.swp
+*~
+
+# IDE文件
+.idea
+.vscode
+.vscode-insiders
+.vscode-test
+
+# 日志
+/logs/*.log
