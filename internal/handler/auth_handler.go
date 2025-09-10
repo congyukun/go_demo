@@ -26,13 +26,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	requestID := GetRequestID(c)
 
 	var req models.LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Warn("登录参数错误",
+	if !ValidateAndBind(c, &req) {
+		logger.Warn("登录参数验证失败",
 			logger.String("request_id", requestID),
-			logger.Err(err),
 			logger.String("client_ip", c.ClientIP()),
 		)
-		ResponseError(c, http.StatusBadRequest, "参数错误: "+err.Error())
 		return
 	}
 
@@ -71,13 +69,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	requestID := GetRequestID(c)
 
 	var req models.RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Warn("注册参数错误",
+	if !ValidateAndBind(c, &req) {
+		logger.Warn("注册参数验证失败",
 			logger.String("request_id", requestID),
-			logger.Err(err),
 			logger.String("client_ip", c.ClientIP()),
 		)
-		ResponseError(c, http.StatusBadRequest, "参数错误: "+err.Error())
 		return
 	}
 

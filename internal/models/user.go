@@ -7,19 +7,19 @@ import (
 )
 
 // User 用户模型
+// User 用户模型
 type User struct {
 	ID        int            `json:"id" gorm:"primaryKey;autoIncrement"`
-	Username  string         `json:"username" gorm:"uniqueIndex;size:50;not null"`
-	Email     string         `json:"email" gorm:"uniqueIndex;size:100"`
-	Name      string         `json:"name" gorm:"size:100;not null"`
+	Username  string         `json:"username" gorm:"uniqueIndex;size:50;not null" validate:"required,min=3,max=20" label:"用户名"`
+	Email     string         `json:"email" gorm:"uniqueIndex;size:100" validate:"omitempty,email" label:"邮箱"`
+	Name      string         `json:"name" gorm:"size:100;not null" validate:"required,min=1,max=50" label:"姓名"`
 	Password  string         `json:"-" gorm:"size:255;not null"`
-	Status    int            `json:"status" gorm:"default:1;comment:状态 1:正常 0:禁用"`
-	Mobile    string         `json:"mobile" gorm:"size:20;not null"`
+	Status    int            `json:"status" gorm:"default:1;comment:状态 1:正常 0:禁用" validate:"omitempty,oneof=0 1" label:"状态"`
+	Mobile    string         `json:"mobile" gorm:"size:20;not null" validate:"required,mobile" label:"手机号"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 }
-
 // TableName 指定表名
 func (User) TableName() string {
 	return "users"

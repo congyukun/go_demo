@@ -10,6 +10,7 @@ import (
 	"go_demo/internal/service"
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
+	"go_demo/pkg/validator"
 	"net/http"
 	"os"
 	"os/signal"
@@ -63,6 +64,12 @@ func main() {
 		logger.Fatal("数据库连接失败", logger.Err(err))
 	}
 	defer database.Close(db)
+
+	// 初始化验证器
+	if err := validator.Init(); err != nil {
+		logger.Fatal("验证器初始化失败", logger.Err(err))
+	}
+	logger.Info("验证器初始化成功")
 
 	// 初始化仓储层
 	userRepo := repository.NewUserRepository(db)

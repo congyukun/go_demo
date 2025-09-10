@@ -130,15 +130,13 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// 绑定请求参数
+	// 绑定并验证请求参数
 	var req models.UpdateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Warn("更新用户参数错误",
+	if !ValidateAndBind(c, &req) {
+		logger.Warn("更新用户参数验证失败",
 			logger.String("request_id", requestID),
 			logger.Int("user_id", id),
-			logger.Err(err),
 		)
-		ResponseError(c, http.StatusBadRequest, "参数错误: "+err.Error())
 		return
 	}
 
