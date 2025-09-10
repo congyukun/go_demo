@@ -11,12 +11,23 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig `mapstructure:"server"`
-	Db     DbConfig     `mapstructure:"db"`
-	Redis  RedisConfig  `mapstructure:"redis"`
-	Mysql  MySQLConfig  `mapstructure:"mysql"`
+	Server   ServerConfig `mapstructure:"server"`
+	Database DatabaseConfig `mapstructure:"database"`
+	Redis    RedisConfig  `mapstructure:"redis"`
+	Log      LogConfig    `mapstructure:"log"`
+	App      AppConfig    `mapstructure:"app"`
 }
 
+// DatabaseConfig 数据库配置
+type DatabaseConfig struct {
+	Mysql MySQLConfig `mapstructure:"mysql"`
+}
+
+type AppConfig struct {
+	Name string `mapstructure:"name"`
+	Env string `mapstructure:"env"`
+	Version string `mapstructure:"version"`
+}
 // ServerConfig 服务器配置
 type ServerConfig struct {
 	Port     int    `mapstructure:"port"`
@@ -51,6 +62,16 @@ type RedisConfig struct {
 	Password string `mapstructure:"password"`
 	Db       int    `mapstructure:"db"`
 	PoolSize int    `mapstructure:"pool_size"`
+}
+
+type LogConfig struct {
+	Level      string `mapstructure:"level"`
+	Format     string `mapstructure:"format"`
+	OutputPath string `mapstructure:"output_path"`
+	MaxSize    int    `mapstructure:"max_size"`
+	MaxBackup  int    `mapstructure:"max_backup"`
+	MaxAge     int    `mapstructure:"max_age"`
+	Compress   bool   `mapstructure:"compress"`
 }
 
 var GlobalConfig Config

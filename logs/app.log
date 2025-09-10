@@ -1,0 +1,8 @@
+2025-09-10T10:36:26.145+0800	[34mINFO[0m	go_demo/main.go:31	应用启动中...	{"app_name": "demo-service", "version": "1.0.0", "env": "dev", "port": 8080}
+2025-09-10T10:36:26.147+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
+2025-09-10T10:36:26.173+0800	[31mERROR[0m	db/mysql.go:51	数据库连接失败	{"error": "Error 1049 (42000): Unknown database 'go_demo'"}
+2025-09-10T10:36:26.173+0800	[31mFATAL[0m	go_demo/main.go:39	mysql连接失败	{"error": "数据库连接失败: Error 1049 (42000): Unknown database 'go_demo'"}
+2025-09-10T10:38:35.409+0800	[34mINFO[0m	go_demo/main.go:31	应用启动中...	{"app_name": "demo-service", "version": "1.0.0", "env": "dev", "port": 8080}
+2025-09-10T10:38:35.411+0800	[34mINFO[0m	db/mysql.go:21	开始初始化MySQL连接	{"dsn": "root:12345***eTime=True&loc=Local", "max_open_conns": 100, "max_idle_conns": 20}
+2025-09-10T10:38:35.425+0800	[34mINFO[0m	db/mysql.go:82	MySQL连接初始化成功	{"max_open_conns": 100, "max_idle_conns": 20, "log_mode": true}
+2025-09-10T10:38:35.426+0800	[34mINFO[0m	go_demo/main.go:48	服务启动在端口: :8080

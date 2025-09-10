@@ -16,7 +16,7 @@ database:
   # MySQL配置
   mysql:
     driver: "mysql"
-    dsn: "root:123456@tcp(127.0.0.1:3306)/go_demo?charset=utf8mb4&parseTime=True&loc=Local"
+    dsn: "root:123456@tcp(127.0.0.1:3306)/go_test?charset=utf8mb4&parseTime=True&loc=Local"
     max_open_conns: 100        # 最大打开连接数
     max_idle_conns: 20         # 最大空闲连接数
     conn_max_lifetime: 3600    # 连接最大存活时间(秒)
@@ -59,4 +59,13 @@ redis:
   idle_timeout: 300           # 空闲连接超时(秒)
   read_timeout: 3
   write_timeout: 3
-    
+
+# Zap日志配置
+log:
+  level: "info"  # debug/info/warn/error/dpanic/panic/fatal
+  format: "console"  # console/json
+  output_path: "logs/app.log"  # 日志输出文件
+  max_size: 100  # 单个日志文件大小(MB)
+  max_backup: 10  # 最大备份数
+  max_age: 7  # 最大保留天数
+  compress: false  # 是否压缩    
