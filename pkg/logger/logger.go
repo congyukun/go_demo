@@ -109,9 +109,11 @@ func Init(cfg LogConfig) error {
 
 		// 创建请求日志核心
 		reqCore := zapcore.NewTee(
-			zapcore.NewCore(encoder, consoleWriter, level),        // 控制台输出
+			// zapcore.NewCore(encoder, consoleWriter, level),        // 控制台输出
 			zapcore.NewCore(encoder, reqFileWriterSync, level),    // 请求日志文件输出
 		)
+
+		
 
 		// 创建请求日志logger
 		ReqLogger = zap.New(reqCore, zap.AddCaller(), zap.AddCallerSkip(1))
