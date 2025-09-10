@@ -52,19 +52,6 @@ func RequestLogMiddleware() gin.HandlerFunc {
 		}
 		c.Writer = blw
 
-		// 记录请求开始
-		logger.ReqInfo("req",
-			logger.String("request_id", requestID),
-			logger.String("method", c.Request.Method),
-			logger.String("path", c.Request.URL.Path),
-			logger.String("client_ip", c.ClientIP()),
-			logger.String("user_agent", c.Request.UserAgent()),
-			logger.Any("query_params", queryParams),
-			logger.Any("path_params", pathParams),
-			logger.String("request_body", string(requestBody)),
-			logger.String("phase", "request"),
-		)
-
 		// 处理请求
 		c.Next()
 
@@ -81,15 +68,19 @@ func RequestLogMiddleware() gin.HandlerFunc {
 			responseData = responseBody
 		}
 
-		// 记录请求完成
+		// 记录完整的请求和响应信息
 		logger.ReqInfo("req",
 			logger.String("request_id", requestID),
 			logger.String("method", c.Request.Method),
 			logger.String("path", c.Request.URL.Path),
+			logger.String("client_ip", c.ClientIP()),
+			logger.String("user_agent", c.Request.UserAgent()),
+			logger.Any("query_params", queryParams),
+			logger.Any("path_params", pathParams),
+			logger.String("request_body", string(requestBody)),
 			logger.Int("status_code", c.Writer.Status()),
 			logger.String("duration", duration.String()),
 			logger.Any("response_body", responseData),
-			logger.String("phase", "response"),
 		)
 	}
 }
@@ -139,51 +130,38 @@ func RequestLogMiddlewareWithConfig(config RequestLogConfig) gin.HandlerFunc {
 			c.Writer = blw
 		}
 
-		// 构建请求日志字段
-		requestFields := []zap.Field{
-			logger.String("request_id", requestID),
-			logger.String("method", c.Request.Method),
-			logger.String("path", c.Request.URL.Path),
-			logger.String("client_ip", c.ClientIP()),
-			logger.String("phase", "request"),
-		}
-
-		if config.LogUserAgent {
-			requestFields = append(requestFields, logger.String("user_agent", c.Request.UserAgent()))
-		}
-		if config.LogQueryParams && queryParams != nil {
-			requestFields = append(requestFields, logger.Any("query_params", queryParams))
-		}
-		if config.LogPathParams && pathParams != nil {
-			requestFields = append(requestFields, logger.Any("path_params", pathParams))
-		}
-		if config.LogHeaders && headers != nil {
-			requestFields = append(requestFields, logger.Any("headers", headers))
-		}
-		if config.LogRequestBody && len(requestBody) > 0 {
-			requestFields = append(requestFields, logger.String("request_body", string(requestBody)))
-		}
-
-		// 记录请求开始
-		logger.ReqInfo("req", requestFields...)
-
 		// 处理请求
 		c.Next()
 
 		// 计算处理时间
 		duration := time.Since(startTime)
 
-		// 构建响应日志字段
-		responseFields := []zap.Field{
+		// 构建完整的请求和响应日志字段
+		logFields := []zap.Field{
 			logger.String("request_id", requestID),
 			logger.String("method", c.Request.Method),
 			logger.String("path", c.Request.URL.Path),
+			logger.String("client_ip", c.ClientIP()),
 			logger.Int("status_code", c.Writer.Status()),
 			logger.String("duration", duration.String()),
-			logger.String("phase", "response"),
 		}
 
-		// 获取响应内容
+		// 添加可选字段
+		if config.LogUserAgent {
+			logFields = append(logFields, logger.String("user_agent", c.Request.UserAgent()))
+		}
+		if config.LogQueryParams && queryParams != nil {
+			logFields = append(logFields, logger.Any("query_params", queryParams))
+		}
+		if config.LogPathParams && pathParams != nil {
+			logFields = append(logFields, logger.Any("path_params", pathParams))
+		}
+		if config.LogHeaders && headers != nil {
+			logFields = append(logFields, logger.Any("headers", headers))
+		}
+		if config.LogRequestBody && len(requestBody) > 0 {
+			logFields = append(logFields, logger.String("request_body", string(requestBody)))
+		}
 		if config.LogResponseBody && blw != nil {
 			responseBody := blw.body.String()
 			var responseData interface{}
@@ -191,11 +169,11 @@ func RequestLogMiddlewareWithConfig(config RequestLogConfig) gin.HandlerFunc {
 				// 如果不是JSON，直接记录字符串
 				responseData = responseBody
 			}
-			responseFields = append(responseFields, logger.Any("response_body", responseData))
+			logFields = append(logFields, logger.Any("response_body", responseData))
 		}
 
-		// 记录请求完成
-		logger.ReqInfo("req", responseFields...)
+		// 记录完整的请求和响应信息
+		logger.ReqInfo("req", logFields...)
 	}
 }
 
