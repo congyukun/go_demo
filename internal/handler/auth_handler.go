@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"go_demo/internal/common"
+	"go_demo/internal/middleware"
 	"go_demo/internal/models"
 	"go_demo/internal/service"
 	"go_demo/pkg/logger"
@@ -23,10 +25,10 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 
 // Login 用户登录
 func (h *AuthHandler) Login(c *gin.Context) {
-	requestID := GetRequestID(c)
+	requestID := common.GetRequestID(c)
 
 	var req models.LoginRequest
-	if !ValidateAndBind(c, &req) {
+	if !middleware.ValidateAndBind(c, &req) {
 		logger.Warn("登录参数验证失败",
 			logger.String("request_id", requestID),
 			logger.String("client_ip", c.ClientIP()),
@@ -50,7 +52,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			logger.String("client_ip", c.ClientIP()),
 			logger.Err(err),
 		)
-		ResponseError(c, http.StatusUnauthorized, err.Error())
+		common.ResponseError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -61,15 +63,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		logger.String("client_ip", c.ClientIP()),
 	)
 
-	ResponseSuccess(c, "登录成功", response)
+	common.ResponseSuccess(c, "登录成功", response)
 }
 
 // Register 用户注册
 func (h *AuthHandler) Register(c *gin.Context) {
-	requestID := GetRequestID(c)
+	requestID := common.GetRequestID(c)
 
 	var req models.RegisterRequest
-	if !ValidateAndBind(c, &req) {
+	if !middleware.ValidateAndBind(c, &req) {
 		logger.Warn("注册参数验证失败",
 			logger.String("request_id", requestID),
 			logger.String("client_ip", c.ClientIP()),
@@ -93,7 +95,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			logger.String("username", req.Username),
 			logger.Err(err),
 		)
-		ResponseError(c, http.StatusConflict, err.Error())
+		common.ResponseError(c, http.StatusConflict, err.Error())
 		return
 	}
 
@@ -105,12 +107,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		logger.String("client_ip", c.ClientIP()),
 	)
 
-	ResponseSuccess(c, "注册成功", user)
+	common.ResponseSuccess(c, "注册成功", user)
 }
 
 // Logout 用户登出
 func (h *AuthHandler) Logout(c *gin.Context) {
-	requestID := GetRequestID(c)
+	requestID := common.GetRequestID(c)
 
 	// 获取Authorization头
 	token := c.GetHeader("Authorization")
@@ -126,7 +128,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 			logger.String("request_id", requestID),
 			logger.String("client_ip", c.ClientIP()),
 		)
-		ResponseError(c, http.StatusUnauthorized, "未提供认证token")
+		common.ResponseError(c, http.StatusUnauthorized, "未提供认证token")
 		return
 	}
 
@@ -138,7 +140,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 			logger.String("client_ip", c.ClientIP()),
 			logger.Err(err),
 		)
-		ResponseError(c, http.StatusUnauthorized, "token无效")
+		common.ResponseError(c, http.StatusUnauthorized, "token无效")
 		return
 	}
 
@@ -148,7 +150,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		logger.String("client_ip", c.ClientIP()),
 	)
 
-	ResponseSuccess(c, "登出成功", nil)
+	common.ResponseSuccess(c, "登出成功", nil)
 }
 
 // maskToken 掩码token用于日志记录

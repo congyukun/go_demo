@@ -2,6 +2,7 @@ package router
 
 import (
 	"go_demo/internal/handler"
+	"go_demo/internal/middleware"
 	"net/http"
 	"time"
 
@@ -43,9 +44,9 @@ func (r *Router) setupMiddleware() {
 	r.engine.Use(gin.Recovery())
 	
 	// 自定义中间件
-	r.engine.Use(handler.RequestIDMiddleware())
-	r.engine.Use(handler.CORSMiddleware())
-	r.engine.Use(handler.RequestLogMiddleware()) // 添加请求日志中间件
+	r.engine.Use(middleware.RequestIDMiddleware())
+	r.engine.Use(middleware.CORSMiddleware())
+	r.engine.Use(middleware.RequestLogMiddleware()) // 添加请求日志中间件
 }
 
 // setupRoutes 设置路由
@@ -85,14 +86,14 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 	{
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
-		auth.POST("/logout", handler.AuthMiddleware(), r.authHandler.Logout)
+		auth.POST("/logout", middleware.AuthMiddleware(), r.authHandler.Logout)
 	}
 }
 
 // setupUserRoutes 设置用户路由
 func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
-	users.Use(handler.AuthMiddleware()) // 用户相关接口需要认证
+	users.Use(middleware.AuthMiddleware()) // 用户相关接口需要认证
 	{
 		users.GET("", r.userHandler.GetUsers)
 		users.GET("/:id", r.userHandler.GetUserByID)

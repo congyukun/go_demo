@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"go_demo/internal/common"
+	"go_demo/internal/middleware"
 	"go_demo/internal/models"
 	"go_demo/internal/service"
 	"go_demo/pkg/logger"
@@ -24,7 +26,7 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 
 // GetUsers 获取用户列表
 func (h *UserHandler) GetUsers(c *gin.Context) {
-	requestID := GetRequestID(c)
+	requestID := common.GetRequestID(c)
 
 	// 获取分页参数
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -44,7 +46,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 			logger.String("request_id", requestID),
 			logger.Err(err),
 		)
-		ResponseError(c, http.StatusInternalServerError, err.Error())
+		common.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -63,12 +65,12 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 		logger.Int64("total", total),
 	)
 
-	ResponseSuccess(c, "获取用户列表成功", data)
+	common.ResponseSuccess(c, "获取用户列表成功", data)
 }
 
 // GetUserByID 根据ID获取用户
 func (h *UserHandler) GetUserByID(c *gin.Context) {
-	requestID := GetRequestID(c)
+	requestID := common.GetRequestID(c)
 
 	// 获取用户ID
 	idStr := c.Param("id")
@@ -79,7 +81,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 			logger.String("id", idStr),
 			logger.Err(err),
 		)
-		ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
+		common.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
 		return
 	}
 
@@ -98,9 +100,9 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 			logger.Err(err),
 		)
 		if err.Error() == "用户不存在" {
-			ResponseError(c, http.StatusNotFound, err.Error())
+			common.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {
-			ResponseError(c, http.StatusInternalServerError, err.Error())
+			common.ResponseError(c, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
@@ -110,12 +112,12 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		logger.Int("user_id", id),
 	)
 
-	ResponseSuccess(c, "获取用户详情成功", user)
+	common.ResponseSuccess(c, "获取用户详情成功", user)
 }
 
 // UpdateUser 更新用户
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	requestID := GetRequestID(c)
+	requestID := common.GetRequestID(c)
 
 	// 获取用户ID
 	idStr := c.Param("id")
@@ -126,13 +128,13 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 			logger.String("id", idStr),
 			logger.Err(err),
 		)
-		ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
+		common.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
 		return
 	}
 
 	// 绑定并验证请求参数
 	var req models.UpdateUserRequest
-	if !ValidateAndBind(c, &req) {
+	if !middleware.ValidateAndBind(c, &req) {
 		logger.Warn("更新用户参数验证失败",
 			logger.String("request_id", requestID),
 			logger.Int("user_id", id),
@@ -155,9 +157,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 			logger.Err(err),
 		)
 		if err.Error() == "用户不存在" {
-			ResponseError(c, http.StatusNotFound, err.Error())
+			common.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {
-			ResponseError(c, http.StatusInternalServerError, err.Error())
+			common.ResponseError(c, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
@@ -167,12 +169,12 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		logger.Int("user_id", id),
 	)
 
-	ResponseSuccess(c, "更新用户成功", user)
+	common.ResponseSuccess(c, "更新用户成功", user)
 }
 
 // DeleteUser 删除用户
 func (h *UserHandler) DeleteUser(c *gin.Context) {
-	requestID := GetRequestID(c)
+	requestID := common.GetRequestID(c)
 
 	// 获取用户ID
 	idStr := c.Param("id")
@@ -183,7 +185,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 			logger.String("id", idStr),
 			logger.Err(err),
 		)
-		ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
+		common.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
 		return
 	}
 
@@ -202,9 +204,9 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 			logger.Err(err),
 		)
 		if err.Error() == "用户不存在" {
-			ResponseError(c, http.StatusNotFound, err.Error())
+			common.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {
-			ResponseError(c, http.StatusInternalServerError, err.Error())
+			common.ResponseError(c, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
@@ -214,5 +216,5 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		logger.Int("user_id", id),
 	)
 
-	ResponseSuccess(c, "删除用户成功", nil)
+	common.ResponseSuccess(c, "删除用户成功", nil)
 }

@@ -1,8 +1,9 @@
-package handler
+package middleware
 
 import (
 	"crypto/rand"
 	"fmt"
+	"go_demo/internal/common"
 	"go_demo/internal/service"
 	"go_demo/pkg/logger"
 	"net/http"
@@ -45,7 +46,7 @@ func CORSMiddleware() gin.HandlerFunc {
 // AuthMiddleware 认证中间件
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		requestID := GetRequestID(c)
+		requestID := common.GetRequestID(c)
 
 		// 获取Authorization头
 		authHeader := c.GetHeader("Authorization")
@@ -55,7 +56,7 @@ func AuthMiddleware() gin.HandlerFunc {
 				logger.String("path", c.Request.URL.Path),
 				logger.String("client_ip", c.ClientIP()),
 			)
-			ResponseError(c, http.StatusUnauthorized, "未提供认证token")
+			common.ResponseError(c, http.StatusUnauthorized, "未提供认证token")
 			c.Abort()
 			return
 		}
@@ -77,7 +78,7 @@ func AuthMiddleware() gin.HandlerFunc {
 				logger.String("client_ip", c.ClientIP()),
 				logger.Err(err),
 			)
-			ResponseError(c, http.StatusUnauthorized, "token无效")
+			common.ResponseError(c, http.StatusUnauthorized, "token无效")
 			c.Abort()
 			return
 		}
@@ -115,14 +116,14 @@ func LoggerMiddleware() gin.HandlerFunc {
 // RecoveryMiddleware 恢复中间件
 func RecoveryMiddleware() gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
-		requestID := GetRequestID(c)
+		requestID := common.GetRequestID(c)
 		logger.Error("服务器内部错误",
 			logger.String("request_id", requestID),
 			logger.String("path", c.Request.URL.Path),
 			logger.String("method", c.Request.Method),
 			logger.Any("error", recovered),
 		)
-		ResponseError(c, http.StatusInternalServerError, "服务器内部错误")
+		common.ResponseError(c, http.StatusInternalServerError, "服务器内部错误")
 	})
 }
 
