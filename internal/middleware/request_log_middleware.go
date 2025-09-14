@@ -3,7 +3,7 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
-	"go_demo/internal/common"
+	"go_demo/internal/utils"
 	"go_demo/pkg/logger"
 	"io"
 	"time"
@@ -27,7 +27,7 @@ func (w responseWriter) Write(b []byte) (int, error) {
 func RequestLogMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
-		requestID := common.GetRequestID(c)
+		requestID := utils.GetRequestID(c)
 
 		// 读取请求体
 		var requestBody []byte
@@ -90,7 +90,7 @@ func RequestLogMiddleware() gin.HandlerFunc {
 func RequestLogMiddlewareWithConfig(config RequestLogConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
-		requestID := common.GetRequestID(c)
+		requestID := utils.GetRequestID(c)
 
 		// 读取请求体
 		var requestBody []byte

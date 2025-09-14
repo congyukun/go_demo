@@ -86,14 +86,14 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 	{
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
-		auth.POST("/logout", middleware.AuthMiddleware(), r.authHandler.Logout)
+		auth.POST("/logout", middleware.JWTMiddleware(), r.authHandler.Logout)
 	}
 }
 
 // setupUserRoutes 设置用户路由
 func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
-	users.Use(middleware.AuthMiddleware()) // 用户相关接口需要认证
+	users.Use(middleware.JWTMiddleware()) // 用户相关接口需要JWT认证
 	{
 		users.GET("", r.userHandler.GetUsers)
 		users.GET("/:id", r.userHandler.GetUserByID)

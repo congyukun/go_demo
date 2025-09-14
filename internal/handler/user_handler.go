@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"go_demo/internal/common"
 	"go_demo/internal/middleware"
 	"go_demo/internal/models"
 	"go_demo/internal/service"
+	"go_demo/internal/utils"
 	"go_demo/pkg/logger"
 	"net/http"
 	"strconv"
@@ -26,7 +26,7 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 
 // GetUsers 获取用户列表
 func (h *UserHandler) GetUsers(c *gin.Context) {
-	requestID := common.GetRequestID(c)
+	requestID := utils.GetRequestID(c)
 
 	// 获取分页参数
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -46,7 +46,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 			logger.String("request_id", requestID),
 			logger.Err(err),
 		)
-		common.ResponseError(c, http.StatusInternalServerError, err.Error())
+		utils.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -65,12 +65,12 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 		logger.Int64("total", total),
 	)
 
-	common.ResponseSuccess(c, "获取用户列表成功", data)
+	utils.ResponseSuccess(c, "获取用户列表成功", data)
 }
 
 // GetUserByID 根据ID获取用户
 func (h *UserHandler) GetUserByID(c *gin.Context) {
-	requestID := common.GetRequestID(c)
+	requestID := utils.GetRequestID(c)
 
 	// 获取用户ID
 	idStr := c.Param("id")
@@ -81,7 +81,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 			logger.String("id", idStr),
 			logger.Err(err),
 		)
-		common.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
+		utils.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
 		return
 	}
 
@@ -100,9 +100,9 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 			logger.Err(err),
 		)
 		if err.Error() == "用户不存在" {
-			common.ResponseError(c, http.StatusNotFound, err.Error())
+			utils.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {
-			common.ResponseError(c, http.StatusInternalServerError, err.Error())
+			utils.ResponseError(c, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
@@ -112,12 +112,12 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		logger.Int("user_id", id),
 	)
 
-	common.ResponseSuccess(c, "获取用户详情成功", user)
+	utils.ResponseSuccess(c, "获取用户详情成功", user)
 }
 
 // UpdateUser 更新用户
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	requestID := common.GetRequestID(c)
+	requestID := utils.GetRequestID(c)
 
 	// 获取用户ID
 	idStr := c.Param("id")
@@ -128,7 +128,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 			logger.String("id", idStr),
 			logger.Err(err),
 		)
-		common.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
+		utils.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
 		return
 	}
 
@@ -157,9 +157,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 			logger.Err(err),
 		)
 		if err.Error() == "用户不存在" {
-			common.ResponseError(c, http.StatusNotFound, err.Error())
+			utils.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {
-			common.ResponseError(c, http.StatusInternalServerError, err.Error())
+			utils.ResponseError(c, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
@@ -169,12 +169,12 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		logger.Int("user_id", id),
 	)
 
-	common.ResponseSuccess(c, "更新用户成功", user)
+	utils.ResponseSuccess(c, "更新用户成功", user)
 }
 
 // DeleteUser 删除用户
 func (h *UserHandler) DeleteUser(c *gin.Context) {
-	requestID := common.GetRequestID(c)
+	requestID := utils.GetRequestID(c)
 
 	// 获取用户ID
 	idStr := c.Param("id")
@@ -185,7 +185,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 			logger.String("id", idStr),
 			logger.Err(err),
 		)
-		common.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
+		utils.ResponseError(c, http.StatusBadRequest, "用户ID参数错误")
 		return
 	}
 
@@ -204,9 +204,9 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 			logger.Err(err),
 		)
 		if err.Error() == "用户不存在" {
-			common.ResponseError(c, http.StatusNotFound, err.Error())
+			utils.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {
-			common.ResponseError(c, http.StatusInternalServerError, err.Error())
+			utils.ResponseError(c, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
@@ -216,5 +216,5 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		logger.Int("user_id", id),
 	)
 
-	common.ResponseSuccess(c, "删除用户成功", nil)
+	utils.ResponseSuccess(c, "删除用户成功", nil)
 }

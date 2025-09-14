@@ -3,8 +3,8 @@ package middleware
 import (
 	"crypto/rand"
 	"fmt"
-	"go_demo/internal/common"
 	"go_demo/internal/service"
+	"go_demo/internal/utils"
 	"go_demo/pkg/logger"
 	"net/http"
 	"strings"
@@ -46,7 +46,7 @@ func CORSMiddleware() gin.HandlerFunc {
 // AuthMiddleware 认证中间件
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		requestID := common.GetRequestID(c)
+		requestID := utils.GetRequestID(c)
 
 		// 获取Authorization头
 		authHeader := c.GetHeader("Authorization")
@@ -56,7 +56,7 @@ func AuthMiddleware() gin.HandlerFunc {
 				logger.String("path", c.Request.URL.Path),
 				logger.String("client_ip", c.ClientIP()),
 			)
-			common.ResponseError(c, http.StatusUnauthorized, "未提供认证token")
+			utils.ResponseError(c, http.StatusUnauthorized, "未提供认证token")
 			c.Abort()
 			return
 		}
@@ -78,7 +78,7 @@ func AuthMiddleware() gin.HandlerFunc {
 				logger.String("client_ip", c.ClientIP()),
 				logger.Err(err),
 			)
-			common.ResponseError(c, http.StatusUnauthorized, "token无效")
+			utils.ResponseError(c, http.StatusUnauthorized, "token无效")
 			c.Abort()
 			return
 		}
@@ -116,15 +116,75 @@ func LoggerMiddleware() gin.HandlerFunc {
 // RecoveryMiddleware 恢复中间件
 func RecoveryMiddleware() gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
-		requestID := common.GetRequestID(c)
+		requestID := utils.GetRequestID(c)
 		logger.Error("服务器内部错误",
 			logger.String("request_id", requestID),
 			logger.String("path", c.Request.URL.Path),
 			logger.String("method", c.Request.Method),
 			logger.Any("error", recovered),
 		)
-		common.ResponseError(c, http.StatusInternalServerError, "服务器内部错误")
+		utils.ResponseError(c, http.StatusInternalServerError, "服务器内部错误")
 	})
+}
+
+// JWTMiddleware JWT认证中间件
+func JWTMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		requestID := utils.GetRequestID(c)
+
+		// 获取Authorization头
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			logger.Warn("JWT认证失败：未提供Authorization头",
+				logger.String("request_id", requestID),
+				logger.String("path", c.Request.URL.Path),
+				logger.String("client_ip", c.ClientIP()),
+			)
+			utils.ResponseError(c, http.StatusUnauthorized, "未提供认证token")
+			c.Abort()
+			return
+		}
+
+		// 提取token（去掉Bearer前缀）
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if token == authHeader {
+			logger.Warn("JWT认证失败：token格式错误",
+				logger.String("request_id", requestID),
+				logger.String("path", c.Request.URL.Path),
+				logger.String("client_ip", c.ClientIP()),
+			)
+			utils.ResponseError(c, http.StatusUnauthorized, "token格式错误")
+			c.Abort()
+			return
+		}
+
+		// 验证JWT token
+		claims, err := utils.ValidateJWT(token)
+		if err != nil {
+			logger.Warn("JWT认证失败：token无效",
+				logger.String("request_id", requestID),
+				logger.String("path", c.Request.URL.Path),
+				logger.String("client_ip", c.ClientIP()),
+				logger.Err(err),
+			)
+			utils.ResponseError(c, http.StatusUnauthorized, "token无效")
+			c.Abort()
+			return
+		}
+
+		// 将用户信息存储到上下文
+		c.Set("user_id", claims.UserID)
+		c.Set("username", claims.Username)
+
+		logger.Debug("JWT认证成功",
+			logger.String("request_id", requestID),
+			logger.Int("user_id", claims.UserID),
+			logger.String("username", claims.Username),
+			logger.String("path", c.Request.URL.Path),
+		)
+
+		c.Next()
+	}
 }
 
 // generateRequestID 生成请求ID

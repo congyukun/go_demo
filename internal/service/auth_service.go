@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go_demo/internal/models"
 	"go_demo/internal/repository"
+	"go_demo/internal/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -55,8 +56,11 @@ func (s *authService) Login(req models.LoginRequest) (*models.LoginResponse, err
 		return nil, fmt.Errorf("用户已被禁用")
 	}
 
-	// 生成token
-	token := s.generateToken(user.Username)
+	// 生成JWT token
+	token, err := utils.GenerateJWT(user.ID, user.Username)
+	if err != nil {
+		return nil, fmt.Errorf("生成token失败: %w", err)
+	}
 	expiresAt := time.Now().Add(24 * time.Hour)
 
 	response := &models.LoginResponse{
@@ -101,29 +105,21 @@ func (s *authService) Register(req models.RegisterRequest) (*models.UserResponse
 	return user.ToResponse(), nil
 }
 
-// ValidateToken 验证token
+// ValidateToken 验证JWT token
 func (s *authService) ValidateToken(token string) (*models.TokenClaims, error) {
 	if token == "" {
 		return nil, fmt.Errorf("token不能为空")
 	}
 
-	// 简单的token验证，实际项目中应该使用JWT
-	// 这里只是模拟验证
-	claims := &models.TokenClaims{
-		UserID:   1,
-		Username: "admin",
+	// 使用JWT验证token
+	claims, err := utils.ValidateJWT(token)
+	if err != nil {
+		return nil, fmt.Errorf("token验证失败: %w", err)
 	}
 
 	return claims, nil
 }
 
-// generateToken 生成token
-func (s *authService) generateToken(username string) string {
-	// 简单的token生成，实际项目中应该使用JWT
-	data := fmt.Sprintf("%s_%d", username, time.Now().Unix())
-	hash := md5.Sum([]byte(data))
-	return fmt.Sprintf("token_%x", hash)
-}
 
 // hashPassword 密码哈希
 func (s *authService) hashPassword(Password string) string {

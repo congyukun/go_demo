@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+)
 
 // LoginRequest 登录请求结构体
 type LoginRequest struct {
@@ -28,6 +32,7 @@ type LoginResponse struct {
 type TokenClaims struct {
 	UserID   int    `json:"user_id"`
 	Username string `json:"username"`
+	jwt.RegisteredClaims
 }
 
 // UpdateUserRequest 更新用户请求结构体
