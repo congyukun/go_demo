@@ -28,6 +28,7 @@ func RequestLogMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
 		requestID := utils.GetRequestID(c)
+		traceId := c.GetString("trace_id")
 
 		// 读取请求体
 		var requestBody []byte
@@ -71,6 +72,7 @@ func RequestLogMiddleware() gin.HandlerFunc {
 
 		// 记录完整的请求和响应信息
 		logger.ReqInfo("req",
+			logger.String("trace_id", traceId),
 			logger.String("request_id", requestID),
 			logger.String("method", c.Request.Method),
 			logger.String("path", c.Request.URL.Path),
@@ -139,6 +141,7 @@ func RequestLogMiddlewareWithConfig(config RequestLogConfig) gin.HandlerFunc {
 
 		// 构建完整的请求和响应日志字段
 		logFields := []zap.Field{
+			logger.String("trace_id", c.GetString("trace_id")),
 			logger.String("request_id", requestID),
 			logger.String("method", c.Request.Method),
 			logger.String("path", c.Request.URL.Path),

@@ -46,8 +46,9 @@ func (r *Router) setupMiddleware() {
 	// 自定义中间件
 	r.engine.Use(middleware.RequestIDMiddleware())
 	r.engine.Use(middleware.CORSMiddleware())
+	r.engine.Use(middleware.Trace()) // 添加 GinTrace 中间件
 	r.engine.Use(middleware.RequestLogMiddleware()) // 添加请求日志中间件
-}
+}	
 
 // setupRoutes 设置路由
 func (r *Router) setupRoutes() {
