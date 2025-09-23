@@ -38,9 +38,8 @@ data/
 # IDE 文件
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
+.vscode-insiders/
+.vscode-test/
 
 # macOS
 .DS_Store
@@ -52,18 +51,20 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Linux
+# Linux 临时文件
 *~
 
 # 临时文件
 tmp/
 temp/
 *.tmp
+*.swp
+*.swo
 
 # 构建缓存
 .cache/
 
-# Air 热重载工具
+# Air 热重载工具临时文件
 tmp/
 
 # Docker 相关
@@ -89,17 +90,3 @@ docs/swagger/
 # 调试文件
 debug
 debug.test
-
-# 临时文件
-*.tmp
-*.swp
-*~
-
-# IDE文件
-.idea
-.vscode
-.vscode-insiders
-.vscode-test
-
-# 日志
-logs
