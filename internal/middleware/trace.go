@@ -9,6 +9,7 @@ import (
 
 type TraceIDKey struct{}
 
+// Trace 链路追踪中间件
 func Trace() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. 尝试从请求头获取 trace_id（如果是上游服务传递的）

@@ -94,8 +94,8 @@ func GetValidatedURI(c *gin.Context) (interface{}, bool) {
 	return c.Get("validated_uri")
 }
 
-// ValidateStruct 直接验证结构体的辅助函数
-func ValidateStruct(c *gin.Context, obj interface{}) bool {
+// ValidateStructWithContext 直接验证结构体的辅助函数
+func ValidateStructWithContext(c *gin.Context, obj interface{}) bool {
 	if err := validator.ValidateStruct(obj); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err.Error())
 		return false

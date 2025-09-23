@@ -44,11 +44,11 @@ func (r *Router) setupMiddleware() {
 	r.engine.Use(gin.Recovery())
 	
 	// 自定义中间件
-	r.engine.Use(middleware.RequestIDMiddleware())
-	r.engine.Use(middleware.CORSMiddleware())
-	r.engine.Use(middleware.Trace()) // 添加 GinTrace 中间件
-	r.engine.Use(middleware.RequestLogMiddleware()) // 添加请求日志中间件
-}	
+	r.engine.Use(middleware.RequestID())
+	r.engine.Use(middleware.CORS())
+	r.engine.Use(middleware.Trace()) // 添加链路追踪中间件
+	r.engine.Use(middleware.RequestLog()) // 添加请求日志中间件
+}
 
 // setupRoutes 设置路由
 func (r *Router) setupRoutes() {
@@ -87,14 +87,14 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 	{
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
-		auth.POST("/logout", middleware.JWTMiddleware(), r.authHandler.Logout)
+		auth.POST("/logout", middleware.Auth(), r.authHandler.Logout)
 	}
 }
 
 // setupUserRoutes 设置用户路由
 func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
-	users.Use(middleware.JWTMiddleware()) // 用户相关接口需要JWT认证
+	users.Use(middleware.Auth()) // 用户相关接口需要JWT认证
 	{
 		users.GET("", r.userHandler.GetUsers)
 		users.GET("/:id", r.userHandler.GetUserByID)

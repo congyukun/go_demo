@@ -23,8 +23,8 @@ func (w responseWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-// RequestLogMiddleware 请求日志中间件 - 记录请求参数和返回值
-func RequestLogMiddleware() gin.HandlerFunc {
+// RequestLog 请求日志中间件 - 记录请求参数和返回值
+func RequestLog() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
 		requestID := utils.GetRequestID(c)
@@ -88,10 +88,16 @@ func RequestLogMiddleware() gin.HandlerFunc {
 	}
 }
 
-// RequestLogMiddlewareWithConfig 带配置的请求日志中间件
-func RequestLogMiddlewareWithConfig(config RequestLogConfig) gin.HandlerFunc {
+// RequestLogWithConfig 带配置的请求日志中间件
+// 可以根据配置选择性地记录请求体、响应体、查询参数、路径参数、请求头和User-Agent
+// 参数：config - 请求日志配置结构体，控制要记录哪些信息
+// 返回：gin.HandlerFunc - Gin框架的中间件处理函数
+func RequestLogWithConfig(config RequestLogConfig) gin.HandlerFunc {
+	// 返回中间件处理函数
 	return func(c *gin.Context) {
+		// 记录请求开始时间，用于计算请求处理时长
 		startTime := time.Now()
+		// 获取请求ID，用于请求追踪
 		requestID := utils.GetRequestID(c)
 
 		// 读取请求体
@@ -133,24 +139,25 @@ func RequestLogMiddlewareWithConfig(config RequestLogConfig) gin.HandlerFunc {
 			c.Writer = blw
 		}
 
-		// 处理请求
+		// 处理请求 - 调用后续中间件和处理函数
 		c.Next()
 
 		// 计算处理时间
 		duration := time.Since(startTime)
 
 		// 构建完整的请求和响应日志字段
+		// 这些是无论如何都会记录的基础字段
 		logFields := []zap.Field{
-			logger.String("trace_id", c.GetString("trace_id")),
-			logger.String("request_id", requestID),
-			logger.String("method", c.Request.Method),
-			logger.String("path", c.Request.URL.Path),
-			logger.String("client_ip", c.ClientIP()),
-			logger.Int("status_code", c.Writer.Status()),
-			logger.String("duration", duration.String()),
+			logger.String("trace_id", c.GetString("trace_id")), // 跟踪ID
+			logger.String("request_id", requestID),             // 请求ID
+			logger.String("method", c.Request.Method),          // HTTP方法
+			logger.String("path", c.Request.URL.Path),          // 请求路径
+			logger.String("client_ip", c.ClientIP()),           // 客户端IP
+			logger.Int("status_code", c.Writer.Status()),       // 状态码
+			logger.String("duration", duration.String()),       // 处理时长
 		}
 
-		// 添加可选字段
+		// 根据配置添加可选的日志字段
 		if config.LogUserAgent {
 			logFields = append(logFields, logger.String("user_agent", c.Request.UserAgent()))
 		}
@@ -169,14 +176,15 @@ func RequestLogMiddlewareWithConfig(config RequestLogConfig) gin.HandlerFunc {
 		if config.LogResponseBody && blw != nil {
 			responseBody := blw.body.String()
 			var responseData interface{}
+			// 尝试将响应体解析为JSON，方便日志查看
 			if err := json.Unmarshal([]byte(responseBody), &responseData); err != nil {
-				// 如果不是JSON，直接记录字符串
+				// 如果不是JSON格式，直接记录原始字符串
 				responseData = responseBody
 			}
 			logFields = append(logFields, logger.Any("response_body", responseData))
 		}
 
-		// 记录完整的请求和响应信息
+		// 记录完整的请求和响应信息到日志系统
 		logger.ReqInfo("req", logFields...)
 	}
 }
