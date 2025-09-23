@@ -1,7 +1,0 @@
-2025-09-19T18:58:32.736+0800	[34mINFO[0m	server/main.go:116	服务器正在关闭...
-2025-09-19T18:58:32.737+0800	[34mINFO[0m	server/main.go:126	服务器已关闭
-2025-09-19T18:58:36.374+0800	[34mINFO[0m	server/main.go:46	服务启动中...	{"app_name": "go-demo", "version": "1.0.0", "env": "dev"}
-2025-09-19T18:58:36.386+0800	[34mINFO[0m	server/main.go:73	验证器初始化成功
-2025-09-19T18:58:36.386+0800	[34mINFO[0m	server/main.go:105	HTTP服务器启动	{"port": 8080}
-2025-09-19T18:58:39.042+0800	[34mINFO[0m	handler/auth_handler.go:39	用户登录请求	{"request_id": "59a931fe-2875-108b-61cc-95dee7d2a97e", "username": "testuser", "client_ip": "127.0.0.1", "user_agent": "PostmanRuntime-ApipostRuntime/1.1.0"}
-2025-09-19T18:58:39.046+0800	[33mWARN[0m	handler/auth_handler.go:49	登录失败	{"request_id": "59a931fe-2875-108b-61cc-95dee7d2a97e", "username": "testuser", "client_ip": "127.0.0.1", "error": "用户名或密码错误"}
