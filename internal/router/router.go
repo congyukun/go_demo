@@ -1,12 +1,13 @@
 package router
 
 import (
-	"go_demo/internal/handler"
-	"go_demo/internal/middleware"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"go_demo/internal/handler"
+	"go_demo/internal/middleware"
 )
 
 // Router 路由管理器
@@ -40,21 +41,25 @@ func (r *Router) Setup() *gin.Engine {
 // setupMiddleware 设置中间件
 func (r *Router) setupMiddleware() {
 	// 基础中间件
-	r.engine.Use(gin.Logger())
-	r.engine.Use(gin.Recovery())
-	
+	r.engine.Use(
+		gin.Logger(),   // 日志中间件
+		gin.Recovery(), // 恢复中间件，防止程序panic导致服务崩溃
+	)
+
 	// 自定义中间件
-	r.engine.Use(middleware.RequestID())
-	r.engine.Use(middleware.CORS())
-	r.engine.Use(middleware.Trace()) // 添加链路追踪中间件
-	r.engine.Use(middleware.RequestLog()) // 添加请求日志中间件
+	r.engine.Use(
+		middleware.RequestID(),  // 请求ID，用于追踪请求
+		middleware.CORS(),       // 跨域资源共享支持
+		middleware.Trace(),      // 链路追踪
+		middleware.RequestLog(), // 请求日志记录
+	)
 }
 
 // setupRoutes 设置路由
 func (r *Router) setupRoutes() {
 	// 健康检查
 	r.setupHealthRoutes()
-	
+
 	// API 路由
 	r.setupAPIRoutes()
 }
@@ -73,10 +78,10 @@ func (r *Router) setupHealthRoutes() {
 func (r *Router) setupAPIRoutes() {
 	// API v1 路由组
 	v1 := r.engine.Group("/api/v1")
-	
+
 	// 认证路由
 	r.setupAuthRoutes(v1)
-	
+
 	// 用户路由
 	r.setupUserRoutes(v1)
 }
