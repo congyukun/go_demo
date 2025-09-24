@@ -94,16 +94,16 @@ go build -o bin/server cmd/server/main.go
 ./bin/server
 ```
 
-应用将在 `http://localhost:8081` 启动。
+应用将在 `http://localhost:8080` 启动。
 
 ### 5. 验证服务
 
 ```bash
 # 健康检查
-curl http://localhost:8081/health
+curl http://localhost:8080/health
 
 # 用户注册
-curl -X POST http://localhost:8081/api/v1/auth/register \
+curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "testuser",
@@ -113,7 +113,7 @@ curl -X POST http://localhost:8081/api/v1/auth/register \
   }'
 
 # 用户登录
-curl -X POST http://localhost:8081/api/v1/auth/login \
+curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
@@ -168,7 +168,7 @@ docker-compose down
 docker build -f deployments/Dockerfile -t go-demo .
 
 # 运行容器
-docker run -p 8081:8081 go-demo
+docker run -p 8080:8080 go-demo
 ```
 
 ## 🧪 测试

@@ -49,11 +49,11 @@ RUN mkdir -p logs && chown -R appuser:appgroup logs
 USER appuser
 
 # 暴露端口
-EXPOSE 8081
+EXPOSE 8080
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # 运行应用
 CMD ["./main"]

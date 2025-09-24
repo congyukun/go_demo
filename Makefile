@@ -124,7 +124,7 @@ docker-build:
 .PHONY: docker-run
 docker-run:
 	@echo "🐳 运行 Docker 容器..."
-	docker run -p 8081:8081 $(PROJECT_NAME):latest
+	docker run -p 8080:8080 $(PROJECT_NAME):latest
 
 # Docker Compose 启动
 .PHONY: docker-up
@@ -158,7 +158,7 @@ migrate:
 .PHONY: health
 health:
 	@echo "🏥 健康检查..."
-	@curl -f http://localhost:8081/health || echo "服务未运行"
+	@curl -f http://localhost:8080/health || echo "服务未运行"
 
 # 显示帮助信息
 .PHONY: help

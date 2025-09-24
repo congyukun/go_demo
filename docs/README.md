@@ -82,19 +82,19 @@ go build -o bin/server cmd/server/main.go
 ./bin/server
 ```
 
-应用将在 `http://localhost:8081` 启动
+应用将在 `http://localhost:8080` 启动
 
 ### 健康检查
 
 ```bash
-curl http://localhost:8081/health
+curl http://localhost:8080/health
 ```
 
 ## API 文档
 
 详细的 API 文档请查看：
 - [OpenAPI 规范](../api/openapi.yaml)
-- 启动应用后访问：`http://localhost:8081/api/v1`
+- 启动应用后访问：`http://localhost:8080/api/v1`
 
 ### 主要接口
 
@@ -162,7 +162,7 @@ db.AutoMigrate(&models.User{})
 docker build -t go-demo .
 
 # 运行容器
-docker run -p 8081:8081 go-demo
+docker run -p 8080:8080 go-demo
 ```
 
 ### 生产环境配置

@@ -38,7 +38,7 @@ go_demo/
 ## API 接口
 
 ### 基础信息
-- 基础URL: `http://localhost:8081`
+- 基础URL: `http://localhost:8080`
 - 内容类型: `application/json`
 
 ### 认证接口
@@ -259,10 +259,10 @@ go_demo/
 go run main.go
 ```
 
-2. 服务将在 `http://localhost:8081` 启动
+2. 服务将在 `http://localhost:8080` 启动
 
 3. 测试登录：
 ```bash
-curl -X POST http://localhost:8081/api/v1/auth/login \
+curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"123456"}'
