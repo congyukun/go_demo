@@ -1,6 +1,7 @@
 {
   "name": "go-demo-frontend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Vue.js frontend for Go Demo API",
   "main": "index.js",
   "scripts": {
@@ -9,12 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.3.4",
-    "vue-router": "^4.2.4",
-    "axios": "^1.5.0"
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0",
+    "axios": "^1.6.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.3.4",
-    "vite": "^4.4.9"
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vite": "^5.0.0"
   }
 }

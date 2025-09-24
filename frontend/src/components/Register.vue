@@ -5,66 +5,67 @@
         <h2>用户注册</h2>
         <p>创建您的新账户</p>
       </div>
-      
       <form @submit.prevent="handleRegister" class="register-form">
-        <div class="form-group">
-          <label for="username">用户名</label>
-          <input
-            id="username"
-            v-model="form.username"
-            type="text"
-            placeholder="请输入用户名"
-            required
-            :disabled="loading"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="email">邮箱</label>
-          <input
-            id="email"
-            v-model="form.email"
-            type="email"
-            placeholder="请输入邮箱地址"
-            required
-            :disabled="loading"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="name">姓名</label>
-          <input
-            id="name"
-            v-model="form.name"
-            type="text"
-            placeholder="请输入您的姓名"
-            required
-            :disabled="loading"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="password">密码</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            placeholder="请输入密码"
-            required
-            :disabled="loading"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="confirmpassword">确认密码</label>
-          <input
-            id="confirmpassword"
-            v-model="form.confirmpassword"
-            type="password"
-            placeholder="请再次输入密码"
-            required
-            :disabled="loading"
-          />
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="username">用户名</label>
+            <input
+              id="username"
+              v-model="form.username"
+              type="text"
+              placeholder="请输入用户名"
+              required
+              :disabled="loading"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="email">邮箱</label>
+            <input
+              id="email"
+              v-model="form.email"
+              type="email"
+              placeholder="请输入邮箱地址"
+              required
+              :disabled="loading"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="name">姓名</label>
+            <input
+              id="name"
+              v-model="form.name"
+              type="text"
+              placeholder="请输入您的姓名"
+              required
+              :disabled="loading"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="password">密码</label>
+            <input
+              id="password"
+              v-model="form.password"
+              type="password"
+              placeholder="请输入密码"
+              required
+              :disabled="loading"
+            />
+          </div>
+          
+          <div class="form-group form-group-full">
+            <label for="confirmpassword">确认密码</label>
+            <input
+              id="confirmpassword"
+              v-model="form.confirmpassword"
+              type="password"
+              placeholder="请再次输入密码"
+              required
+              :disabled="loading"
+            />
+          </div>
         </div>
         
         <div v-if="error" class="error-message">
@@ -169,11 +170,18 @@ export default {
 
 .register-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
   padding: 40px;
   width: 100%;
-  max-width: 450px;
+  max-width: 650px;
+}
+
+@media (min-width: 1024px) {
+  .register-card {
+    max-width: 900px;
+    padding: 50px 80px;
+  }
 }
 
 .register-header {
@@ -183,39 +191,86 @@ export default {
 
 .register-header h2 {
   color: #333;
-  margin-bottom: 8px;
-  font-size: 28px;
+  margin-bottom: 12px;
+  font-size: 32px;
   font-weight: 600;
 }
 
 .register-header p {
   color: #666;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .register-form {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 30px;
+  }
+  
+  .form-group-full {
+    grid-column: 1 / -1;
+  }
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: #333;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 16px 20px;
   border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 16px;
   transition: border-color 0.3s ease;
+}
+
+@media (min-width: 1024px) {
+  .register-header h2 {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+  
+  .register-header p {
+    font-size: 18px;
+  }
+  
+  .register-form {
+    margin-bottom: 28px;
+  }
+  
+  .form-group {
+    margin-bottom: 28px;
+  }
+  
+  .form-group label {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  
+  .form-group input {
+    padding: 18px 24px;
+    font-size: 18px;
+    border-radius: 12px;
+  }
 }
 
 .form-group input:focus {
@@ -231,20 +286,20 @@ export default {
 .error-message {
   background-color: #fee;
   color: #c53030;
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  font-size: 14px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 16px;
   text-align: center;
 }
 
 .success-message {
   background-color: #f0fff4;
   color: #38a169;
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  font-size: 14px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 16px;
   text-align: center;
 }
 
@@ -253,12 +308,32 @@ export default {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 18px;
+  border-radius: 10px;
+  font-size: 18px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.2s ease;
+}
+
+@media (min-width: 1024px) {
+  .error-message {
+    padding: 20px;
+    font-size: 18px;
+    margin-bottom: 28px;
+  }
+  
+  .success-message {
+    padding: 20px;
+    font-size: 18px;
+    margin-bottom: 28px;
+  }
+  
+  .register-btn {
+    padding: 22px;
+    font-size: 20px;
+    border-radius: 12px;
+  }
 }
 
 .register-btn:hover:not(:disabled) {
@@ -278,7 +353,7 @@ export default {
 
 .register-footer p {
   color: #666;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .login-link {
@@ -289,5 +364,11 @@ export default {
 
 .login-link:hover {
   text-decoration: underline;
+}
+
+@media (min-width: 1024px) {
+  .register-footer p {
+    font-size: 18px;
+  }
 }
 </style>

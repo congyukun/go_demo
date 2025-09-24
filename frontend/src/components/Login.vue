@@ -108,11 +108,18 @@ export default {
 
 .login-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
   padding: 40px;
   width: 100%;
-  max-width: 400px;
+  max-width: 600px;
+}
+
+@media (min-width: 1024px) {
+  .login-card {
+    max-width: 800px;
+    padding: 50px 80px;
+  }
 }
 
 .login-header {
@@ -122,14 +129,25 @@ export default {
 
 .login-header h2 {
   color: #333;
-  margin-bottom: 8px;
-  font-size: 28px;
+  margin-bottom: 12px;
+  font-size: 32px;
   font-weight: 600;
 }
 
 .login-header p {
   color: #666;
-  font-size: 14px;
+  font-size: 16px;
+}
+
+@media (min-width: 1024px) {
+  .login-header h2 {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+  
+  .login-header p {
+    font-size: 18px;
+  }
 }
 
 .login-form {
@@ -137,24 +155,41 @@ export default {
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: #333;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 16px 20px;
   border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 16px;
   transition: border-color 0.3s ease;
+}
+
+@media (min-width: 1024px) {
+  .form-group {
+    margin-bottom: 28px;
+  }
+  
+  .form-group label {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  
+  .form-group input {
+    padding: 18px 24px;
+    font-size: 18px;
+    border-radius: 12px;
+  }
 }
 
 .form-group input:focus {
@@ -170,10 +205,10 @@ export default {
 .error-message {
   background-color: #fee;
   color: #c53030;
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  font-size: 14px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 16px;
   text-align: center;
 }
 
@@ -182,12 +217,26 @@ export default {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 18px;
+  border-radius: 10px;
+  font-size: 18px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.2s ease;
+}
+
+@media (min-width: 1024px) {
+  .error-message {
+    padding: 20px;
+    font-size: 18px;
+    margin-bottom: 28px;
+  }
+  
+  .login-btn {
+    padding: 22px;
+    font-size: 20px;
+    border-radius: 12px;
+  }
 }
 
 .login-btn:hover:not(:disabled) {
@@ -207,7 +256,7 @@ export default {
 
 .login-footer p {
   color: #666;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .register-link {
@@ -218,5 +267,11 @@ export default {
 
 .register-link:hover {
   text-decoration: underline;
+}
+
+@media (min-width: 1024px) {
+  .login-footer p {
+    font-size: 18px;
+  }
 }
 </style>
