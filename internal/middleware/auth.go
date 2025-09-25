@@ -42,7 +42,7 @@ func Auth() gin.HandlerFunc {
 		}
 
 		// 验证JWT token
-		claims, err := utils.ValidateJWT(token)
+		claims, err := utils.ValidateToken(token)
 		if err != nil {
 			logger.Warn("JWT认证失败：token无效",
 				logger.String("request_id", requestID),
@@ -61,7 +61,7 @@ func Auth() gin.HandlerFunc {
 
 		logger.Debug("JWT认证成功",
 			logger.String("request_id", requestID),
-			logger.Int("user_id", claims.UserID),
+			logger.Int64("user_id", claims.UserID),
 			logger.String("username", claims.Username),
 			logger.String("path", c.Request.URL.Path),
 		)

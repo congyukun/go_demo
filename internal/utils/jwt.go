@@ -1,80 +1,256 @@
 package utils
 
 import (
-	"fmt"
-	"go_demo/internal/models"
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWT密钥，实际项目中应该从配置文件读取
-var jwtSecret = []byte("your-secret-key-change-this-in-production")
+// JWTConfig JWT配置
+type JWTConfig struct {
+	SecretKey     string `yaml:"secret_key"`
+	AccessExpire  int64  `yaml:"access_expire"`  // 访问token过期时间（秒）
+	RefreshExpire int64  `yaml:"refresh_expire"` // 刷新token过期时间（秒）
+	Issuer        string `yaml:"issuer"`         // 签发者
+}
 
-// GenerateJWT 生成JWT token
-func GenerateJWT(userID int, username string) (string, error) {
-	// 创建claims
-	claims := &models.TokenClaims{
+// Claims JWT声明
+type Claims struct {
+	UserID   int64  `json:"user_id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+// JWTManager JWT管理器
+type JWTManager struct {
+	config JWTConfig
+}
+
+// NewJWTManager 创建JWT管理器
+func NewJWTManager(config JWTConfig) *JWTManager {
+	if config.Issuer == "" {
+		config.Issuer = "go_demo"
+	}
+	if config.AccessExpire == 0 {
+		config.AccessExpire = 3600 // 默认1小时
+	}
+	if config.RefreshExpire == 0 {
+		config.RefreshExpire = 604800 // 默认7天
+	}
+	return &JWTManager{
+		config: config,
+	}
+}
+
+// GenerateAccessToken 生成访问token
+func (j *JWTManager) GenerateAccessToken(userID int64, username, role string) (string, error) {
+	now := time.Now()
+	claims := Claims{
 		UserID:   userID,
 		Username: username,
+		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // 24小时过期
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "go_demo",
-			Subject:   fmt.Sprintf("%d", userID),
+			Issuer:    j.config.Issuer,
+			Subject:   username,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(j.config.AccessExpire) * time.Second)),
+			NotBefore: jwt.NewNumericDate(now),
 		},
 	}
 
-	// 创建token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// 签名token
-	tokenString, err := token.SignedString(jwtSecret)
-	if err != nil {
-		return "", fmt.Errorf("生成token失败: %w", err)
-	}
-
-	return tokenString, nil
+	return token.SignedString([]byte(j.config.SecretKey))
 }
 
-// ValidateJWT 验证JWT token
-func ValidateJWT(tokenString string) (*models.TokenClaims, error) {
-	// 解析token
-	token, err := jwt.ParseWithClaims(tokenString, &models.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+// GenerateRefreshToken 生成刷新token
+func (j *JWTManager) GenerateRefreshToken(userID int64, username string) (string, error) {
+	now := time.Now()
+	claims := Claims{
+		UserID:   userID,
+		Username: username,
+		Role:     "", // 刷新token不包含角色信息
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    j.config.Issuer,
+			Subject:   username,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(j.config.RefreshExpire) * time.Second)),
+			NotBefore: jwt.NewNumericDate(now),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(j.config.SecretKey))
+}
+
+// GenerateTokenPair 生成token对（访问token和刷新token）
+func (j *JWTManager) GenerateTokenPair(userID int64, username, role string) (accessToken, refreshToken string, err error) {
+	accessToken, err = j.GenerateAccessToken(userID, username, role)
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err = j.GenerateRefreshToken(userID, username)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+// ParseToken 解析token
+func (j *JWTManager) ParseToken(tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		// 验证签名方法
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("意外的签名方法: %v", token.Header["alg"])
+			return nil, errors.New("无效的签名方法")
 		}
-		return jwtSecret, nil
+		return []byte(j.config.SecretKey), nil
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("解析token失败: %w", err)
+		return nil, err
 	}
 
-	// 验证token是否有效
-	if !token.Valid {
-		return nil, fmt.Errorf("token无效")
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
 	}
 
-	// 提取claims
-	claims, ok := token.Claims.(*models.TokenClaims)
-	if !ok {
-		return nil, fmt.Errorf("无法提取token claims")
+	return nil, errors.New("无效的token")
+}
+
+// ValidateToken 验证token有效性
+func (j *JWTManager) ValidateToken(tokenString string) (*Claims, error) {
+	claims, err := j.ParseToken(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	// 检查token是否过期
+	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
+		return nil, errors.New("token已过期")
+	}
+
+	// 检查token是否还未生效
+	if claims.NotBefore != nil && claims.NotBefore.Time.After(time.Now()) {
+		return nil, errors.New("token还未生效")
 	}
 
 	return claims, nil
 }
 
-// RefreshJWT 刷新JWT token
-func RefreshJWT(tokenString string) (string, error) {
-	// 验证当前token
-	claims, err := ValidateJWT(tokenString)
+// RefreshAccessToken 使用刷新token生成新的访问token
+func (j *JWTManager) RefreshAccessToken(refreshToken string, role string) (string, error) {
+	claims, err := j.ValidateToken(refreshToken)
 	if err != nil {
-		return "", fmt.Errorf("当前token无效: %w", err)
+		return "", err
 	}
 
-	// 生成新token
-	return GenerateJWT(claims.UserID, claims.Username)
+	// 验证这是一个刷新token（刷新token的role为空）
+	if claims.Role != "" {
+		return "", errors.New("无效的刷新token")
+	}
+
+	// 生成新的访问token
+	return j.GenerateAccessToken(claims.UserID, claims.Username, role)
+}
+
+// GetUserIDFromToken 从token中获取用户ID
+func (j *JWTManager) GetUserIDFromToken(tokenString string) (int64, error) {
+	claims, err := j.ValidateToken(tokenString)
+	if err != nil {
+		return 0, err
+	}
+	return claims.UserID, nil
+}
+
+// GetUsernameFromToken 从token中获取用户名
+func (j *JWTManager) GetUsernameFromToken(tokenString string) (string, error) {
+	claims, err := j.ValidateToken(tokenString)
+	if err != nil {
+		return "", err
+	}
+	return claims.Username, nil
+}
+
+// GetRoleFromToken 从token中获取用户角色
+func (j *JWTManager) GetRoleFromToken(tokenString string) (string, error) {
+	claims, err := j.ValidateToken(tokenString)
+	if err != nil {
+		return "", err
+	}
+	return claims.Role, nil
+}
+
+// IsTokenExpired 检查token是否过期
+func (j *JWTManager) IsTokenExpired(tokenString string) bool {
+	claims, err := j.ParseToken(tokenString)
+	if err != nil {
+		return true
+	}
+
+	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
+		return true
+	}
+
+	return false
+}
+
+// GetTokenExpireTime 获取token过期时间
+func (j *JWTManager) GetTokenExpireTime(tokenString string) (time.Time, error) {
+	claims, err := j.ParseToken(tokenString)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if claims.ExpiresAt != nil {
+		return claims.ExpiresAt.Time, nil
+	}
+
+	return time.Time{}, errors.New("token没有过期时间")
+}
+
+// 全局JWT管理器实例
+var GlobalJWTManager *JWTManager
+
+// InitJWT 初始化全局JWT管理器
+func InitJWT(config JWTConfig) {
+	GlobalJWTManager = NewJWTManager(config)
+}
+
+// 便捷函数，使用全局JWT管理器
+func GenerateAccessToken(userID int64, username, role string) (string, error) {
+	if GlobalJWTManager == nil {
+		return "", errors.New("JWT管理器未初始化")
+	}
+	return GlobalJWTManager.GenerateAccessToken(userID, username, role)
+}
+
+func GenerateRefreshToken(userID int64, username string) (string, error) {
+	if GlobalJWTManager == nil {
+		return "", errors.New("JWT管理器未初始化")
+	}
+	return GlobalJWTManager.GenerateRefreshToken(userID, username)
+}
+
+func GenerateTokenPair(userID int64, username, role string) (string, string, error) {
+	if GlobalJWTManager == nil {
+		return "", "", errors.New("JWT管理器未初始化")
+	}
+	return GlobalJWTManager.GenerateTokenPair(userID, username, role)
+}
+
+func ValidateToken(tokenString string) (*Claims, error) {
+	if GlobalJWTManager == nil {
+		return nil, errors.New("JWT管理器未初始化")
+	}
+	return GlobalJWTManager.ValidateToken(tokenString)
+}
+
+func RefreshAccessToken(refreshToken string, role string) (string, error) {
+	if GlobalJWTManager == nil {
+		return "", errors.New("JWT管理器未初始化")
+	}
+	return GlobalJWTManager.RefreshAccessToken(refreshToken, role)
 }

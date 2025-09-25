@@ -1,13 +1,12 @@
 package router
 
 import (
+	"go_demo/internal/handler"
+	"go_demo/internal/middleware"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-
-	"go_demo/internal/handler"
-	"go_demo/internal/middleware"
 )
 
 // Router 路由管理器
@@ -42,15 +41,15 @@ func (r *Router) Setup() *gin.Engine {
 func (r *Router) setupMiddleware() {
 	// 基础中间件
 	r.engine.Use(
-		gin.Logger(),   // 日志中间件
-		gin.Recovery(), // 恢复中间件，防止程序panic导致服务崩溃
+		middleware.Logger(),    // 自定义日志中间件
+		middleware.Recovery(),  // 自定义恢复中间件
 	)
 
 	// 自定义中间件
 	r.engine.Use(
-		middleware.RequestID(),  // 请求ID，用于追踪请求
-		middleware.CORS(),       // 跨域资源共享支持
-		middleware.Trace(),      // 链路追踪
+		middleware.RequestID(), // 请求ID，用于追踪请求
+		middleware.CORS(),      // 跨域资源共享支持
+		middleware.Trace(),     // 链路追踪
 		middleware.RequestLog(), // 请求日志记录
 	)
 }
@@ -92,7 +91,9 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 	{
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
+		auth.POST("/refresh", r.authHandler.RefreshToken)
 		auth.POST("/logout", middleware.Auth(), r.authHandler.Logout)
+		auth.GET("/profile", middleware.Auth(), r.authHandler.GetProfile)
 	}
 }
 
@@ -101,10 +102,19 @@ func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
 	users.Use(middleware.Auth()) // 用户相关接口需要JWT认证
 	{
+		// 用户管理（管理员功能）
 		users.GET("", r.userHandler.GetUsers)
-		users.GET("/:id", r.userHandler.GetUserByID)
+		users.POST("", r.userHandler.CreateUser)
+		users.GET("/stats", r.userHandler.GetUserStats)
+		
+		// 用户详情和操作
+		users.GET("/:id", r.userHandler.GetUser)
 		users.PUT("/:id", r.userHandler.UpdateUser)
 		users.DELETE("/:id", r.userHandler.DeleteUser)
+		
+		// 用户自己的操作
+		users.PUT("/profile", r.userHandler.UpdateProfile)
+		users.PUT("/Password", r.userHandler.ChangePassword)
 	}
 }
 

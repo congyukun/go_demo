@@ -22,7 +22,7 @@ import (
 
 func main() {
 	// 初始化配置
-	cfg, err := config.Load()
+	cfg, err := config.Load("./configs/config.yaml")
 	if err != nil {
 		panic(fmt.Sprintf("加载配置失败: %v", err))
 	}
@@ -44,22 +44,13 @@ func main() {
 	defer logger.Sync()
 
 	logger.Info("服务启动中...",
-		logger.String("app_name", cfg.App.Name),
-		logger.String("version", cfg.App.Version),
-		logger.String("env", cfg.App.Env),
+		logger.String("app_name", "go_demo"),
+		logger.String("version", "1.0.0"),
+		logger.String("mode", cfg.Server.Mode),
 	)
 
 	// 初始化数据库
-	mysqlConfig := database.MySQLConfig{
-		Driver:          cfg.Database.MySQL.Driver,
-		DSN:             cfg.Database.MySQL.DSN,
-		MaxOpenConns:    cfg.Database.MySQL.MaxOpenConns,
-		MaxIdleConns:    cfg.Database.MySQL.MaxIdleConns,
-		ConnMaxLifetime: cfg.Database.MySQL.ConnMaxLifetime,
-		ConnMaxIdleTime: cfg.Database.MySQL.ConnMaxIdleTime,
-		LogMode:         cfg.Database.MySQL.LogMode,
-		SlowThreshold:   cfg.Database.MySQL.SlowThreshold,
-	}
+	mysqlConfig := cfg.Database
 	db, err := database.NewMySQL(mysqlConfig)
 	if err != nil {
 		logger.Fatal("数据库连接失败", logger.Err(err))
@@ -80,11 +71,11 @@ func main() {
 	userService := service.NewUserService(userRepo)
 
 	// 初始化处理器
-	authHandler := handler.NewAuthHandler(authService)
+	authHandler := handler.NewAuthHandler(authService, userService)
 	userHandler := handler.NewUserHandler(userService)
 
 	// 设置Gin模式
-	if cfg.App.Env == "prod" {
+	if cfg.Server.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 

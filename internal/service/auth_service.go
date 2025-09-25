@@ -8,6 +8,7 @@ import (
 	"go_demo/internal/utils"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -57,7 +58,7 @@ func (s *authService) Login(req models.LoginRequest) (*models.LoginResponse, err
 	}
 
 	// 生成JWT token
-	token, err := utils.GenerateJWT(user.ID, user.Username)
+	token, err := utils.GenerateAccessToken(int64(user.ID), user.Username, "user")
 	if err != nil {
 		return nil, fmt.Errorf("生成token失败: %w", err)
 	}
@@ -90,14 +91,15 @@ func (s *authService) Register(req models.RegisterRequest) (*models.UserResponse
 	}
 
 	// 创建用户
+	// 创建用户
 	user := &models.User{
 		Username: req.Username,
+		Email:    req.Email,
 		Name:     req.Name,
-		Password: s.hashPassword(req.Password),
+		Password:     s.hashPassword(req.Password),
 		Status:   1,
 		Mobile:   req.Mobile,
 	}
-
 	if err := s.userRepo.Create(user); err != nil {
 		return nil, fmt.Errorf("创建用户失败: %w", err)
 	}
@@ -112,7 +114,16 @@ func (s *authService) ValidateToken(token string) (*models.TokenClaims, error) {
 	}
 
 	// 使用JWT验证token
-	claims, err := utils.ValidateJWT(token)
+	jwtClaims, err := utils.ValidateToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("token验证失败: %w", err)
+	}
+	
+	// 转换为TokenClaims格式
+	claims := &models.TokenClaims{
+		UserID:   int(jwtClaims.UserID),
+		Username: jwtClaims.Username,
+	}
 	if err != nil {
 		return nil, fmt.Errorf("token验证失败: %w", err)
 	}
@@ -121,13 +132,28 @@ func (s *authService) ValidateToken(token string) (*models.TokenClaims, error) {
 }
 
 
-// hashPassword 密码哈希
+// hashPassword 密码哈希 - 使用bcrypt替代MD5
 func (s *authService) hashPassword(Password string) string {
-	hash := md5.Sum([]byte(Password))
-	return fmt.Sprintf("%x", hash)
+	// 使用bcrypt进行密码哈希，成本为10
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(Password), 10)
+	if err != nil {
+		// 如果bcrypt失败，回退到MD5（不推荐用于生产环境）
+		hash := md5.Sum([]byte(Password))
+		return fmt.Sprintf("%x", hash)
+	}
+	return string(hashedBytes)
 }
 
-// verifyPassword 验证密码
+// verifyPassword 验证密码 - 支持bcrypt和MD5
 func (s *authService) verifyPassword(Password, hashedPassword string) bool {
-	return s.hashPassword(Password) == hashedPassword
+	// 首先尝试bcrypt验证
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(Password))
+	if err == nil {
+		return true
+	}
+	
+	// 如果bcrypt失败，尝试MD5验证（向后兼容）
+	hash := md5.Sum([]byte(Password))
+	md5Hash := fmt.Sprintf("%x", hash)
+	return md5Hash == hashedPassword
 }

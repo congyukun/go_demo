@@ -2,171 +2,256 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"go_demo/internal/utils"
+	"go_demo/pkg/database"
+	"go_demo/pkg/logger"
 
-	"gopkg.in/yaml.v3"
+	"github.com/spf13/viper"
 )
 
 // Config 应用配置结构
 type Config struct {
-	App      AppConfig      `yaml:"app"`
 	Server   ServerConfig   `yaml:"server"`
-	Database DatabaseConfig `yaml:"database"`
+	Database database.MySQLConfig `yaml:"database"`
+	JWT      utils.JWTConfig `yaml:"jwt"`
+	Log      logger.LogConfig `yaml:"log"`
 	Redis    RedisConfig    `yaml:"redis"`
-	Log      LogConfig      `yaml:"log"`
-}
-
-// AppConfig 应用基础配置
-type AppConfig struct {
-	Name    string `yaml:"name"`
-	Env     string `yaml:"env"`
-	Version string `yaml:"version"`
 }
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port         int `yaml:"port"`
-	Timeout      int `yaml:"timeout"`
-	ReadTimeout  int `yaml:"read_timeout"`
-	WriteTimeout int `yaml:"write_timeout"`
-}
-
-// DatabaseConfig 数据库配置
-type DatabaseConfig struct {
-	MySQL    MySQLConfig    `yaml:"mysql"`
-	Postgres PostgresConfig `yaml:"postgres"`
-	SQLite   SQLiteConfig   `yaml:"sqlite"`
-	MongoDB  MongoDBConfig  `yaml:"mongodb"`
-}
-
-// MySQLConfig MySQL配置
-type MySQLConfig struct {
-	Driver          string `yaml:"driver"`
-	DSN             string `yaml:"dsn"`
-	MaxOpenConns    int    `yaml:"max_open_conns"`
-	MaxIdleConns    int    `yaml:"max_idle_conns"`
-	ConnMaxLifetime int    `yaml:"conn_max_lifetime"`
-	ConnMaxIdleTime int    `yaml:"conn_max_idle_time"`
-	LogMode         bool   `yaml:"log_mode"`
-	SlowThreshold   int    `yaml:"slow_threshold"`
-}
-
-// PostgresConfig PostgreSQL配置
-type PostgresConfig struct {
-	Driver          string `yaml:"driver"`
-	DSN             string `yaml:"dsn"`
-	MaxOpenConns    int    `yaml:"max_open_conns"`
-	MaxIdleConns    int    `yaml:"max_idle_conns"`
-	ConnMaxLifetime int    `yaml:"conn_max_lifetime"`
-	ConnMaxIdleTime int    `yaml:"conn_max_idle_time"`
-}
-
-// SQLiteConfig SQLite配置
-type SQLiteConfig struct {
-	Driver          string `yaml:"driver"`
-	DSN             string `yaml:"dsn"`
-	MaxOpenConns    int    `yaml:"max_open_conns"`
-	MaxIdleConns    int    `yaml:"max_idle_conns"`
-	ConnMaxLifetime int    `yaml:"conn_max_lifetime"`
-}
-
-// MongoDBConfig MongoDB配置
-type MongoDBConfig struct {
-	URI         string `yaml:"uri"`
-	Database    string `yaml:"database"`
-	MaxPoolSize int    `yaml:"max_pool_size"`
-	MinPoolSize int    `yaml:"min_pool_size"`
-	Timeout     int    `yaml:"timeout"`
+	Port         int    `yaml:"port"`
+	Mode         string `yaml:"mode"`          // debug, release, test
+	ReadTimeout  int    `yaml:"read_timeout"`  // 秒
+	WriteTimeout int    `yaml:"write_timeout"` // 秒
+	MaxHeaderMB  int    `yaml:"max_header_mb"` // MB
 }
 
 // RedisConfig Redis配置
 type RedisConfig struct {
-	Addr         string `yaml:"addr"`
-	Password     string `yaml:"password"`
+	Host         string `yaml:"host"`
+	Port         int    `yaml:"port"`
+	Password     string `yaml:"Password"`
 	DB           int    `yaml:"db"`
 	PoolSize     int    `yaml:"pool_size"`
 	MinIdleConns int    `yaml:"min_idle_conns"`
-	IdleTimeout  int    `yaml:"idle_timeout"`
-	ReadTimeout  int    `yaml:"read_timeout"`
-	WriteTimeout int    `yaml:"write_timeout"`
+	MaxRetries   int    `yaml:"max_retries"`
 }
 
-// LogConfig 日志配置
-type LogConfig struct {
-	Level       string `yaml:"level"`
-	Format      string `yaml:"format"`
-	OutputPath  string `yaml:"output_path"`
-	ReqLogPath  string `yaml:"req_log_path"`
-	MaxSize     int    `yaml:"max_size"`
-	MaxBackup   int    `yaml:"max_backup"`
-	MaxAge      int    `yaml:"max_age"`
-	Compress    bool   `yaml:"compress"`
-}
-
+// 全局配置实例
 var GlobalConfig *Config
 
 // Load 加载配置文件
-func Load() (*Config, error) {
-	configPath := getConfigPath()
+func Load(configPath string) (*Config, error) {
+	viper.SetConfigFile(configPath)
+	viper.SetConfigType("yaml")
 
-	data, err := os.ReadFile(configPath)
-	if err != nil {
+	// 设置环境变量前缀
+	viper.SetEnvPrefix("GO_DEMO")
+	viper.AutomaticEnv()
+
+	// 设置默认值
+	setDefaults()
+
+	// 读取配置文件
+	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
 
+	// 解析配置
 	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("解析配置文件失败: %w", err)
+	if err := viper.Unmarshal(&config); err != nil {
+		return nil, fmt.Errorf("解析配置失败: %w", err)
 	}
 
-	// 设置默认值
-	setDefaults(&config)
+	// 验证配置
+	if err := validateConfig(&config); err != nil {
+		return nil, fmt.Errorf("配置验证失败: %w", err)
+	}
 
+	// 设置全局配置
 	GlobalConfig = &config
+
 	return &config, nil
 }
 
-// getConfigPath 获取配置文件路径
-func getConfigPath() string {
-	// 优先使用环境变量指定的配置文件
-	if configPath := os.Getenv("CONFIG_PATH"); configPath != "" {
-		return configPath
-	}
+// setDefaults 设置默认配置值
+func setDefaults() {
+	// 服务器默认配置
+	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.mode", "debug")
+	viper.SetDefault("server.read_timeout", 60)
+	viper.SetDefault("server.write_timeout", 60)
+	viper.SetDefault("server.max_header_mb", 1)
 
-	// 默认配置文件路径
-	return filepath.Join("configs", "config.yaml")
+	// 数据库默认配置
+	viper.SetDefault("database.driver", "mysql")
+	viper.SetDefault("database.max_open_conns", 100)
+	viper.SetDefault("database.max_idle_conns", 10)
+	viper.SetDefault("database.conn_max_lifetime", 3600)
+	viper.SetDefault("database.conn_max_idle_time", 1800)
+	viper.SetDefault("database.log_mode", true)
+	viper.SetDefault("database.slow_threshold", 200)
+
+	// JWT默认配置
+	viper.SetDefault("jwt.secret_key", "default-secret-key-change-in-production")
+	viper.SetDefault("jwt.access_expire", 3600)    // 1小时
+	viper.SetDefault("jwt.refresh_expire", 604800) // 7天
+	viper.SetDefault("jwt.issuer", "go_demo")
+
+	// 日志默认配置
+	viper.SetDefault("log.level", "info")
+	viper.SetDefault("log.format", "json")
+	viper.SetDefault("log.output_path", "./logs/app.log")
+	viper.SetDefault("log.req_log_path", "./logs/request.log")
+	viper.SetDefault("log.max_size", 100)
+	viper.SetDefault("log.max_backup", 10)
+	viper.SetDefault("log.max_age", 30)
+	viper.SetDefault("log.compress", true)
+
+	// Redis默认配置
+	viper.SetDefault("redis.host", "localhost")
+	viper.SetDefault("redis.port", 6379)
+	viper.SetDefault("redis.db", 0)
+	viper.SetDefault("redis.pool_size", 10)
+	viper.SetDefault("redis.min_idle_conns", 5)
+	viper.SetDefault("redis.max_retries", 3)
 }
 
-// setDefaults 设置默认值
-func setDefaults(config *Config) {
-	if config.App.Name == "" {
-		config.App.Name = "go-demo"
-	}
-	if config.App.Env == "" {
-		config.App.Env = "dev"
-	}
-	if config.App.Version == "" {
-		config.App.Version = "1.0.0"
+// validateConfig 验证配置
+func validateConfig(config *Config) error {
+	// 验证服务器配置
+	if config.Server.Port <= 0 || config.Server.Port > 65535 {
+		return fmt.Errorf("无效的服务器端口: %d", config.Server.Port)
 	}
 
-	if config.Server.Port == 0 {
-		config.Server.Port = 8080
-	}
-	if config.Server.ReadTimeout == 0 {
-		config.Server.ReadTimeout = 15
-	}
-	if config.Server.WriteTimeout == 0 {
-		config.Server.WriteTimeout = 15
+	if config.Server.Mode != "debug" && config.Server.Mode != "release" && config.Server.Mode != "test" {
+		return fmt.Errorf("无效的服务器模式: %s", config.Server.Mode)
 	}
 
-	if config.Log.Level == "" {
-		config.Log.Level = "info"
+	// 验证数据库配置
+	if config.Database.DSN == "" {
+		return fmt.Errorf("数据库DSN不能为空")
 	}
-	if config.Log.Format == "" {
-		config.Log.Format = "console"
+
+	// 验证JWT配置
+	if config.JWT.SecretKey == "" {
+		return fmt.Errorf("JWT密钥不能为空")
 	}
+
+	if config.JWT.AccessExpire <= 0 {
+		return fmt.Errorf("JWT访问token过期时间必须大于0")
+	}
+
+	// 验证日志配置
 	if config.Log.OutputPath == "" {
-		config.Log.OutputPath = "logs/app.log"
+		return fmt.Errorf("日志输出路径不能为空")
 	}
+
+	return nil
+}
+
+// GetConfig 获取全局配置
+func GetConfig() *Config {
+	return GlobalConfig
+}
+
+// GetServerConfig 获取服务器配置
+func GetServerConfig() ServerConfig {
+	if GlobalConfig == nil {
+		return ServerConfig{}
+	}
+	return GlobalConfig.Server
+}
+
+// GetDatabaseConfig 获取数据库配置
+func GetDatabaseConfig() database.MySQLConfig {
+	if GlobalConfig == nil {
+		return database.MySQLConfig{}
+	}
+	return GlobalConfig.Database
+}
+
+// GetJWTConfig 获取JWT配置
+func GetJWTConfig() utils.JWTConfig {
+	if GlobalConfig == nil {
+		return utils.JWTConfig{}
+	}
+	return GlobalConfig.JWT
+}
+
+// GetLogConfig 获取日志配置
+func GetLogConfig() logger.LogConfig {
+	if GlobalConfig == nil {
+		return logger.LogConfig{}
+	}
+	return GlobalConfig.Log
+}
+
+// GetRedisConfig 获取Redis配置
+func GetRedisConfig() RedisConfig {
+	if GlobalConfig == nil {
+		return RedisConfig{}
+	}
+	return GlobalConfig.Redis
+}
+
+// IsProduction 判断是否为生产环境
+func IsProduction() bool {
+	if GlobalConfig == nil {
+		return false
+	}
+	return GlobalConfig.Server.Mode == "release"
+}
+
+// IsDevelopment 判断是否为开发环境
+func IsDevelopment() bool {
+	if GlobalConfig == nil {
+		return true
+	}
+	return GlobalConfig.Server.Mode == "debug"
+}
+
+// IsTest 判断是否为测试环境
+func IsTest() bool {
+	if GlobalConfig == nil {
+		return false
+	}
+	return GlobalConfig.Server.Mode == "test"
+}
+
+// LoadFromEnv 从环境变量加载配置（用于容器化部署）
+func LoadFromEnv() (*Config, error) {
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("GO_DEMO")
+
+	// 设置默认值
+	setDefaults()
+
+	// 解析配置
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		return nil, fmt.Errorf("从环境变量解析配置失败: %w", err)
+	}
+
+	// 验证配置
+	if err := validateConfig(&config); err != nil {
+		return nil, fmt.Errorf("配置验证失败: %w", err)
+	}
+
+	// 设置全局配置
+	GlobalConfig = &config
+
+	return &config, nil
+}
+
+// ReloadConfig 重新加载配置（热更新）
+func ReloadConfig(configPath string) error {
+	newConfig, err := Load(configPath)
+	if err != nil {
+		return err
+	}
+
+	GlobalConfig = newConfig
+	return nil
 }

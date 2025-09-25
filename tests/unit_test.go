@@ -11,7 +11,8 @@ func TestUserModel(t *testing.T) {
 		ID:       1,
 		Username: "testuser",
 		Email:    "test@example.com",
-		Name:     "Test User",
+		Name:     "测试用户",
+		Mobile:   "13800138000",
 		Status:   1,
 	}
 
