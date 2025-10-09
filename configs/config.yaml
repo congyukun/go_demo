@@ -19,7 +19,7 @@ database:
 
 # JWT配置
 jwt:
-  secret_key: "your-super-secret-jwt-key-change-this-in-production"
+  secret_key: "wVvHx4e0ZvJ8a9d6r5t3yu0i9o7p6y4t3r2e1w2q3s4d5f6"
   access_expire: 3600    # 访问token过期时间（秒）- 1小时
   refresh_expire: 604800 # 刷新token过期时间（秒）- 7天
   issuer: "go_demo"

@@ -15,6 +15,8 @@ type User struct {
 	Password  string     `json:"-" gorm:"size:255;not null;column:password"`
 	Status    int        `json:"status" gorm:"default:1;not null;column:status;comment:状态 1:正常 0:禁用"`
 	Mobile    string     `json:"mobile" gorm:"uniqueIndex:idx_mobile;size:20;not null;column:mobile"`
+	Role      int        `json:"role" gorm:"default:1;not null;column:role;comment:角色 1:用户 2:管理员"`
+	LastLogin time.Time  `json:"last_login" gorm:"column:last_login;comment:最后登录时间"`
 	CreatedAt time.Time  `json:"created_at" gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time  `json:"updated_at" gorm:"column:updated_at;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
 	DeletedAt *time.Time `json:"-" gorm:"index:idx_deleted_at;column:deleted_at"`
@@ -33,6 +35,8 @@ type UserResponse struct {
 	Name      string    `json:"name"`
 	Mobile    string    `json:"mobile"`
 	Status    int       `json:"status"`
+	Role      int       `json:"role"`
+	LastLogin time.Time `json:"last_login"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -46,6 +50,8 @@ func (u *User) ToResponse() *UserResponse {
 		Name:      u.Name,
 		Mobile:    u.Mobile,
 		Status:    u.Status,
+		Role:      u.Role,
+		LastLogin: u.LastLogin,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

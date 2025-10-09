@@ -57,26 +57,11 @@ func Load(configPath string) (*Config, error) {
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
-
 	// 解析配置
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("解析配置失败: %w", err)
 	}
-
-	// Debug: Print what viper read
-	fmt.Printf("Debug - Viper JWT values: secret_key=%s, access_expire=%v, refresh_expire=%v, issuer=%s\n", 
-		viper.GetString("jwt.secret_key"), 
-		viper.GetInt64("jwt.access_expire"),
-		viper.GetInt64("jwt.refresh_expire"),
-		viper.GetString("jwt.issuer"))
-
-	// Fix JWT config manually since viper unmarshalling is not working correctly
-	config.JWT.SecretKey = viper.GetString("jwt.secret_key")
-	config.JWT.AccessExpire = viper.GetInt64("jwt.access_expire")
-	config.JWT.RefreshExpire = viper.GetInt64("jwt.refresh_expire")
-	config.JWT.Issuer = viper.GetString("jwt.issuer")
-
 	// 验证配置
 	if err := validateConfig(&config); err != nil {
 		logger.Debug("配置内容", logger.Any("config", config))
