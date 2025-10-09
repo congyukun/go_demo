@@ -14,14 +14,14 @@ import (
 
 // MySQLConfig MySQL配置
 type MySQLConfig struct {
-	Driver          string `yaml:"driver"`
-	DSN             string `yaml:"dsn"`
-	MaxOpenConns    int    `yaml:"max_open_conns"`
-	MaxIdleConns    int    `yaml:"max_idle_conns"`
-	ConnMaxLifetime int    `yaml:"conn_max_lifetime"`
-	ConnMaxIdleTime int    `yaml:"conn_max_idle_time"`
-	LogMode         bool   `yaml:"log_mode"`
-	SlowThreshold   int    `yaml:"slow_threshold"`
+	Driver          string `mapstructure:"driver" yaml:"driver"`
+	DSN             string `mapstructure:"dsn" yaml:"dsn"`
+	MaxOpenConns    int    `mapstructure:"max_open_conns" yaml:"max_open_conns"`
+	MaxIdleConns    int    `mapstructure:"max_idle_conns" yaml:"max_idle_conns"`
+	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime" yaml:"conn_max_lifetime"`
+	ConnMaxIdleTime int    `mapstructure:"conn_max_idle_time" yaml:"conn_max_idle_time"`
+	LogMode         bool   `mapstructure:"log_mode" yaml:"log_mode"`
+	SlowThreshold   int    `mapstructure:"slow_threshold" yaml:"slow_threshold"`
 }
 
 // NewMySQL 创建MySQL数据库连接

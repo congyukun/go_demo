@@ -8,13 +8,13 @@ import (
 )
 
 // JWTConfig JWT配置
+// JWTConfig JWT配置
 type JWTConfig struct {
-	SecretKey     string `yaml:"secret_key"`
-	AccessExpire  int64  `yaml:"access_expire"`  // 访问token过期时间（秒）
-	RefreshExpire int64  `yaml:"refresh_expire"` // 刷新token过期时间（秒）
-	Issuer        string `yaml:"issuer"`         // 签发者
+	SecretKey     string `mapstructure:"secret_key" yaml:"secret_key"`
+	AccessExpire  int64  `mapstructure:"access_expire" yaml:"access_expire"`  // 访问token过期时间（秒）
+	RefreshExpire int64  `mapstructure:"refresh_expire" yaml:"refresh_expire"` // 刷新token过期时间（秒）
+	Issuer        string `mapstructure:"issuer" yaml:"issuer"`         // 签发者
 }
-
 // Claims JWT声明
 type Claims struct {
 	UserID   int64  `json:"user_id"`

@@ -11,11 +11,11 @@ import (
 
 // Config 应用配置结构
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
+	Server   ServerConfig         `yaml:"server"`
 	Database database.MySQLConfig `yaml:"database"`
-	JWT      utils.JWTConfig `yaml:"jwt"`
-	Log      logger.LogConfig `yaml:"log"`
-	Redis    RedisConfig    `yaml:"redis"`
+	JWT      utils.JWTConfig      `yaml:"jwt"`
+	Log      logger.LogConfig     `yaml:"log"`
+	Redis    RedisConfig          `yaml:"redis"`
 }
 
 // ServerConfig 服务器配置
@@ -64,8 +64,22 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("解析配置失败: %w", err)
 	}
 
+	// Debug: Print what viper read
+	fmt.Printf("Debug - Viper JWT values: secret_key=%s, access_expire=%v, refresh_expire=%v, issuer=%s\n", 
+		viper.GetString("jwt.secret_key"), 
+		viper.GetInt64("jwt.access_expire"),
+		viper.GetInt64("jwt.refresh_expire"),
+		viper.GetString("jwt.issuer"))
+
+	// Fix JWT config manually since viper unmarshalling is not working correctly
+	config.JWT.SecretKey = viper.GetString("jwt.secret_key")
+	config.JWT.AccessExpire = viper.GetInt64("jwt.access_expire")
+	config.JWT.RefreshExpire = viper.GetInt64("jwt.refresh_expire")
+	config.JWT.Issuer = viper.GetString("jwt.issuer")
+
 	// 验证配置
 	if err := validateConfig(&config); err != nil {
+		logger.Debug("配置内容", logger.Any("config", config))
 		return nil, fmt.Errorf("配置验证失败: %w", err)
 	}
 
@@ -94,7 +108,7 @@ func setDefaults() {
 	viper.SetDefault("database.slow_threshold", 200)
 
 	// JWT默认配置
-	viper.SetDefault("jwt.secret_key", "default-secret-key-change-in-production")
+	viper.SetDefault("jwt.secret_key", "wVvHx4e0ZvJ8a9d6r5t3yu0i9o7p6y4t3r2e1w2q3s4d5f6")
 	viper.SetDefault("jwt.access_expire", 3600)    // 1小时
 	viper.SetDefault("jwt.refresh_expire", 604800) // 7天
 	viper.SetDefault("jwt.issuer", "go_demo")
@@ -135,6 +149,7 @@ func validateConfig(config *Config) error {
 	}
 
 	// 验证JWT配置
+	fmt.Printf("Debug - JWT config: %+v\n", config.JWT)
 	if config.JWT.SecretKey == "" {
 		return fmt.Errorf("JWT密钥不能为空")
 	}
@@ -236,7 +251,7 @@ func LoadFromEnv() (*Config, error) {
 
 	// 验证配置
 	if err := validateConfig(&config); err != nil {
-		return nil, fmt.Errorf("配置验证失败: %w", err)
+		return nil, fmt.Errorf("配置验证失败Env: %w", err)
 	}
 
 	// 设置全局配置

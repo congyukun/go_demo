@@ -6,12 +6,12 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 创建数据库（如果不存在）
-CREATE DATABASE IF NOT EXISTS `go_test` 
+CREATE DATABASE IF NOT EXISTS `go_demo` 
 CHARACTER SET utf8mb4 
 COLLATE utf8mb4_unicode_ci;
 
 -- 使用数据库
-USE `go_test`;
+USE `go_demo`;
 
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS `users` (
@@ -40,9 +40,9 @@ VALUES
 ('demo', 'demo@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '13812345678', 1, 'user', NOW(), NOW());
 
 -- 创建索引优化查询性能
-CREATE INDEX IF NOT EXISTS `idx_users_status` ON `users` (`status`);
-CREATE INDEX IF NOT EXISTS `idx_users_role` ON `users` (`role`);
-CREATE INDEX IF NOT EXISTS `idx_users_created_at` ON `users` (`created_at`);
+ALTER TABLE `users` ADD INDEX `idx_users_status` (`status`);
+ALTER TABLE `users` ADD INDEX `idx_users_role` (`role`);
+ALTER TABLE `users` ADD INDEX `idx_users_created_at` (`created_at`);
 
 -- 设置自增起始值
 ALTER TABLE `users` AUTO_INCREMENT = 1000;
@@ -74,7 +74,8 @@ WHERE `deleted_at` IS NULL;
 
 -- 创建存储过程：清理软删除的用户（可选）
 DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS `CleanupDeletedUsers`(IN days_old INT)
+DROP PROCEDURE IF EXISTS `CleanupDeletedUsers`;
+CREATE PROCEDURE `CleanupDeletedUsers`(IN days_old INT)
 BEGIN
     DECLARE done INT DEFAULT FALSE;
     DECLARE user_count INT DEFAULT 0;
@@ -97,7 +98,8 @@ DELIMITER ;
 
 -- 创建触发器：更新用户时自动更新 updated_at
 DELIMITER $$
-CREATE TRIGGER IF NOT EXISTS `users_updated_at` 
+DROP TRIGGER IF EXISTS `users_updated_at`;
+CREATE TRIGGER `users_updated_at`
 BEFORE UPDATE ON `users`
 FOR EACH ROW 
 BEGIN

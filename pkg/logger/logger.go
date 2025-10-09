@@ -18,14 +18,14 @@ var (
 
 // LogConfig 日志配置
 type LogConfig struct {
-	Level       string `yaml:"level"`
-	Format      string `yaml:"format"`
-	OutputPath  string `yaml:"output_path"`
-	ReqLogPath  string `yaml:"req_log_path"`
-	MaxSize     int    `yaml:"max_size"`
-	MaxBackup   int    `yaml:"max_backup"`
-	MaxAge      int    `yaml:"max_age"`
-	Compress    bool   `yaml:"compress"`
+	Level       string `mapstructure:"level" yaml:"level"`
+	Format      string `mapstructure:"format" yaml:"format"`
+	OutputPath  string `mapstructure:"output_path" yaml:"output_path"`
+	ReqLogPath  string `mapstructure:"req_log_path" yaml:"req_log_path"`
+	MaxSize     int    `mapstructure:"max_size" yaml:"max_size"`
+	MaxBackup   int    `mapstructure:"max_backup" yaml:"max_backup"`
+	MaxAge      int    `mapstructure:"max_age" yaml:"max_age"`
+	Compress    bool   `mapstructure:"compress" yaml:"compress"`
 }
 
 // Init 初始化日志
