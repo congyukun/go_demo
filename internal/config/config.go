@@ -11,31 +11,31 @@ import (
 
 // Config 应用配置结构
 type Config struct {
-	Server   ServerConfig         `yaml:"server"`
-	Database database.MySQLConfig `yaml:"database"`
-	JWT      utils.JWTConfig      `yaml:"jwt"`
-	Log      logger.LogConfig     `yaml:"log"`
-	Redis    RedisConfig          `yaml:"redis"`
+	Server   ServerConfig         `mapstructure:"server" yaml:"server"`
+	Database database.MySQLConfig `mapstructure:"database" yaml:"database"`
+	JWT      utils.JWTConfig      `mapstructure:"jwt" yaml:"jwt"`
+	Log      logger.LogConfig     `mapstructure:"log" yaml:"log"`
+	Redis    RedisConfig          `mapstructure:"redis" yaml:"redis"`
 }
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port         int    `yaml:"port"`
-	Mode         string `yaml:"mode"`          // debug, release, test
-	ReadTimeout  int    `yaml:"read_timeout"`  // 秒
-	WriteTimeout int    `yaml:"write_timeout"` // 秒
-	MaxHeaderMB  int    `yaml:"max_header_mb"` // MB
+	Port         int    `mapstructure:"port" yaml:"port"`
+	Mode         string `mapstructure:"mode" yaml:"mode"`          // debug, release, test
+	ReadTimeout  int    `mapstructure:"read_timeout" yaml:"read_timeout"`  // 秒
+	WriteTimeout int    `mapstructure:"write_timeout" yaml:"write_timeout"` // 秒
+	MaxHeaderMB  int    `mapstructure:"max_header_mb" yaml:"max_header_mb"` // MB
 }
 
 // RedisConfig Redis配置
 type RedisConfig struct {
-	Host         string `yaml:"host"`
-	Port         int    `yaml:"port"`
-	Password     string `yaml:"Password"`
-	DB           int    `yaml:"db"`
-	PoolSize     int    `yaml:"pool_size"`
-	MinIdleConns int    `yaml:"min_idle_conns"`
-	MaxRetries   int    `yaml:"max_retries"`
+	Host         string `mapstructure:"host" yaml:"host"`
+	Port         int    `mapstructure:"port" yaml:"port"`
+	Password     string `mapstructure:"Password" yaml:"Password"`
+	DB           int    `mapstructure:"db" yaml:"db"`
+	PoolSize     int    `mapstructure:"pool_size" yaml:"pool_size"`
+	MinIdleConns int    `mapstructure:"min_idle_conns" yaml:"min_idle_conns"`
+	MaxRetries   int    `mapstructure:"max_retries" yaml:"max_retries"`
 }
 
 // 全局配置实例
