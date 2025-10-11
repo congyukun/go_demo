@@ -9,6 +9,7 @@ import (
 	"go_demo/internal/repository"
 	"go_demo/internal/router"
 	"go_demo/internal/service"
+	"go_demo/internal/utils"
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
 	"go_demo/pkg/validator"
@@ -71,7 +72,9 @@ func main() {
 		logger.String("version", "1.0.0"),
 		logger.String("mode", cfg.Server.Mode),
 	)
-
+	// 初始化全局JWT管理器
+	jwtConfig := cfg.JWT
+	utils.InitJWT(jwtConfig)
 	// 初始化数据库
 	mysqlConfig := cfg.Database
 	db, err := database.NewMySQL(mysqlConfig)

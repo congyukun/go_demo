@@ -98,6 +98,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	logger.Info("用户注册请求",
 		logger.String("request_id", requestID),
+		logger.String("mobile", req.Mobile),
 		logger.String("username", req.Username),
 		logger.String("email", req.Email),
 		logger.String("client_ip", c.ClientIP()),
@@ -126,6 +127,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	logger.Info("用户注册成功",
 		logger.String("request_id", requestID),
 		logger.String("username", req.Username),
+		logger.String("mobile", req.Mobile),
 		logger.Int("user_id", int(user.ID)),
 		logger.String("client_ip", c.ClientIP()),
 	)
