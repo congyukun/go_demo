@@ -96,7 +96,7 @@ func (s *authService) Register(req models.RegisterRequest) (*models.UserResponse
 		Username: req.Username,
 		Email:    req.Email,
 		Name:     req.Name,
-		Password:     s.hashPassword(req.Password),
+		Password: s.hashPassword(req.Password),
 		Status:   1,
 		Mobile:   req.Mobile,
 	}
@@ -118,7 +118,7 @@ func (s *authService) ValidateToken(token string) (*models.TokenClaims, error) {
 	if err != nil {
 		return nil, fmt.Errorf("token验证失败: %w", err)
 	}
-	
+
 	// 转换为TokenClaims格式
 	claims := &models.TokenClaims{
 		UserID:   int(jwtClaims.UserID),
@@ -130,7 +130,6 @@ func (s *authService) ValidateToken(token string) (*models.TokenClaims, error) {
 
 	return claims, nil
 }
-
 
 // hashPassword 密码哈希 - 使用bcrypt替代MD5
 func (s *authService) hashPassword(Password string) string {
@@ -151,7 +150,7 @@ func (s *authService) verifyPassword(Password, hashedPassword string) bool {
 	if err == nil {
 		return true
 	}
-	
+
 	// 如果bcrypt失败，尝试MD5验证（向后兼容）
 	hash := md5.Sum([]byte(Password))
 	md5Hash := fmt.Sprintf("%x", hash)

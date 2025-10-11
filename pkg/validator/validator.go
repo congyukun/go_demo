@@ -39,7 +39,7 @@ func (v *defaultValidator) Engine() interface{} {
 func Init() error {
 	// 创建新的验证器实例
 	Validator = validator.New()
-	
+
 	// 设置gin使用我们的验证器
 	binding.Validator = &defaultValidator{validate: Validator}
 
@@ -82,7 +82,7 @@ func initTranslator() error {
 	// 创建中文翻译器
 	zhLocale := zh.New()
 	uni := ut.New(zhLocale, zhLocale)
-	
+
 	var ok bool
 	Trans, ok = uni.GetTranslator("zh")
 	if !ok {
@@ -146,17 +146,18 @@ func registerFieldNames() {
 		if name != "" {
 			return name
 		}
-		
+
 		// 如果没有label标签，使用json标签
 		jsonName := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
 		if jsonName != "" && jsonName != "-" {
 			return jsonName
 		}
-		
+
 		// 如果都没有，使用字段名
 		return fld.Name
 	})
 }
+
 // ValidateStruct 验证结构体并返回中文错误信息
 func ValidateStruct(s interface{}) error {
 	if err := Validator.Struct(s); err != nil {

@@ -70,7 +70,7 @@ type UserCreateRequest struct {
 	Username string `json:"username" validate:"required,min=3,max=50" label:"用户名"`
 	Email    string `json:"email" validate:"required,email" label:"邮箱"`
 	Password string `json:"password" validate:"required,min=6,max=50" label:"密码"`
-	Name     string `json:"name" validate:"required,min=1,max=100" label:"姓名"`
+	Name     string `json:"name" validate:"required,min=1,max=64" label:"姓名"`
 	Mobile   string `json:"mobile" validate:"required,mobile" label:"手机号"`
 }
 

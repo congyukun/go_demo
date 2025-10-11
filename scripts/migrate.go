@@ -116,7 +116,7 @@ func seed(db *gorm.DB) error {
 		Username: "admin",
 		Email:    "admin@example.com",
 		Name:     "管理员",
-		Password:     "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // Password
+		Password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // Password
 		Mobile:   "13800138000",
 		Status:   1,
 	}
@@ -138,7 +138,7 @@ func seed(db *gorm.DB) error {
 		Username: "testuser",
 		Email:    "test@example.com",
 		Name:     "测试用户",
-		Password:     "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // Password
+		Password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // Password
 		Mobile:   "10.27.0",
 		Status:   1,
 	}

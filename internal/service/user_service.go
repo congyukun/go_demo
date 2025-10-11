@@ -16,18 +16,18 @@ type UserService interface {
 	GetUserByID(id int) (*models.UserResponse, error)
 	UpdateUser(id int, req models.UpdateUserRequest) (*models.UserResponse, error)
 	DeleteUser(id int) error
-	
+
 	// 用户管理
 	CreateUser(req models.UserCreateRequest) (*models.UserResponse, error)
 	UpdateUserProfile(id int, req models.UserProfileUpdateRequest) (*models.UserResponse, error)
 	ChangePassword(id int, req models.ChangePasswordRequest) error
 	UpdateUserStatus(id int, status int) error
-	
+
 	// 查询方法
 	SearchUsers(keyword string, limit int) ([]*models.UserResponse, error)
 	GetActiveUsers() ([]*models.UserResponse, error)
 	GetRecentUsers(limit int) ([]*models.UserResponse, error)
-	
+
 	// 统计方法
 	GetUserCount() (int64, error)
 	GetUserStats() (map[string]interface{}, error)
@@ -156,6 +156,7 @@ func (s *userService) CreateUser(req models.UserCreateRequest) (*models.UserResp
 	// 检查邮箱是否已存在
 	if _, err := s.userRepo.GetByEmail(req.Email); err == nil {
 		return nil, fmt.Errorf("邮箱已存在")
+go install github.com/air-verse/air@latest
 	} else if err != gorm.ErrRecordNotFound {
 		return nil, fmt.Errorf("检查邮箱失败: %w", err)
 	}
@@ -180,7 +181,7 @@ func (s *userService) CreateUser(req models.UserCreateRequest) (*models.UserResp
 		Username: req.Username,
 		Email:    req.Email,
 		Name:     req.Name,
-		Password:     string(hashedBytes),
+		Password: string(hashedBytes),
 		Mobile:   req.Mobile,
 		Status:   1,
 	}
@@ -310,7 +311,6 @@ func (s *userService) SearchUsers(keyword string, limit int) ([]*models.UserResp
 
 	return responses, nil
 }
-
 
 // GetActiveUsers 获取活跃用户
 func (s *userService) GetActiveUsers() ([]*models.UserResponse, error) {

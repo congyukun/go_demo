@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go_demo/internal/config"
 	"go_demo/internal/handler"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -55,7 +57,12 @@ func main() {
 	if err != nil {
 		logger.Fatal("数据库连接失败", logger.Err(err))
 	}
-	defer database.Close(db)
+	defer func(db *gorm.DB) {
+		err := database.Close(db)
+		if err != nil {
+			logger.Fatal("数据库链接关闭失败", logger.Err(err))
+		}
+	}(db)
 
 	// 初始化验证器
 	if err := validator.Init(); err != nil {
@@ -94,7 +101,7 @@ func main() {
 	// 启动服务器
 	go func() {
 		logger.Info("HTTP服务器启动", logger.Int("port", cfg.Server.Port))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("服务器启动失败", logger.Err(err))
 		}
 	}()

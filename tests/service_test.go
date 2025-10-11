@@ -163,7 +163,7 @@ func TestUserService(t *testing.T) {
 		Username: "userservicetest",
 		Email:    "userservice@example.com",
 		Name:     "用户服务测试",
-		Password:     "hashed_Password",
+		Password: "hashed_Password",
 		Mobile:   "10.27.0",
 		Status:   1,
 	}
@@ -255,7 +255,6 @@ func TestUserService(t *testing.T) {
 			t.Errorf("期望邮箱 %s, 实际 %s", newEmail, user.Email)
 		}
 
-
 		if user.Status != status {
 			t.Errorf("期望状态 %d, 实际 %d", status, user.Status)
 		}
@@ -267,7 +266,7 @@ func TestUserService(t *testing.T) {
 			Username: "deletetest",
 			Email:    "delete@example.com",
 			Name:     "删除测试用户",
-			Password:     "hashed_Password",
+			Password: "hashed_Password",
 			Mobile:   "Password",
 			Status:   1,
 		}

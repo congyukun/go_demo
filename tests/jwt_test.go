@@ -10,7 +10,7 @@ func TestJWTManager(t *testing.T) {
 	// 初始化JWT配置
 	config := utils.JWTConfig{
 		SecretKey:     "test-secret-key-for-testing",
-		AccessExpire:  3600,  // 1小时
+		AccessExpire:  3600,   // 1小时
 		RefreshExpire: 604800, // 7天
 		Issuer:        "go_demo_test",
 	}

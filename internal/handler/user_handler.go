@@ -123,7 +123,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 			logger.Int("user_id", id),
 			logger.Err(err),
 		)
-		
+
 		if err.Error() == "用户不存在" {
 			utils.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {
@@ -244,7 +244,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 			logger.Int("user_id", id),
 			logger.Err(err),
 		)
-		
+
 		if err.Error() == "用户不存在" {
 			utils.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {
@@ -300,7 +300,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 			logger.Int("user_id", id),
 			logger.Err(err),
 		)
-		
+
 		if err.Error() == "用户不存在" {
 			utils.ResponseError(c, http.StatusNotFound, err.Error())
 		} else {

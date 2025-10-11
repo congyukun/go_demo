@@ -18,14 +18,14 @@ var (
 
 // LogConfig 日志配置
 type LogConfig struct {
-	Level       string `mapstructure:"level" yaml:"level"`
-	Format      string `mapstructure:"format" yaml:"format"`
-	OutputPath  string `mapstructure:"output_path" yaml:"output_path"`
-	ReqLogPath  string `mapstructure:"req_log_path" yaml:"req_log_path"`
-	MaxSize     int    `mapstructure:"max_size" yaml:"max_size"`
-	MaxBackup   int    `mapstructure:"max_backup" yaml:"max_backup"`
-	MaxAge      int    `mapstructure:"max_age" yaml:"max_age"`
-	Compress    bool   `mapstructure:"compress" yaml:"compress"`
+	Level      string `mapstructure:"level" yaml:"level"`
+	Format     string `mapstructure:"format" yaml:"format"`
+	OutputPath string `mapstructure:"output_path" yaml:"output_path"`
+	ReqLogPath string `mapstructure:"req_log_path" yaml:"req_log_path"`
+	MaxSize    int    `mapstructure:"max_size" yaml:"max_size"`
+	MaxBackup  int    `mapstructure:"max_backup" yaml:"max_backup"`
+	MaxAge     int    `mapstructure:"max_age" yaml:"max_age"`
+	Compress   bool   `mapstructure:"compress" yaml:"compress"`
 }
 
 // Init 初始化日志
@@ -110,10 +110,8 @@ func Init(cfg LogConfig) error {
 		// 创建请求日志核心
 		reqCore := zapcore.NewTee(
 			// zapcore.NewCore(encoder, consoleWriter, level),        // 控制台输出
-			zapcore.NewCore(encoder, reqFileWriterSync, level),    // 请求日志文件输出
+			zapcore.NewCore(encoder, reqFileWriterSync, level), // 请求日志文件输出
 		)
-
-		
 
 		// 创建请求日志logger
 		ReqLogger = zap.New(reqCore, zap.AddCaller(), zap.AddCallerSkip(1))

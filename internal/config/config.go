@@ -21,8 +21,8 @@ type Config struct {
 // ServerConfig 服务器配置
 type ServerConfig struct {
 	Port         int    `mapstructure:"port" yaml:"port"`
-	Mode         string `mapstructure:"mode" yaml:"mode"`          // debug, release, test
-	ReadTimeout  int    `mapstructure:"read_timeout" yaml:"read_timeout"`  // 秒
+	Mode         string `mapstructure:"mode" yaml:"mode"`                   // debug, release, test
+	ReadTimeout  int    `mapstructure:"read_timeout" yaml:"read_timeout"`   // 秒
 	WriteTimeout int    `mapstructure:"write_timeout" yaml:"write_timeout"` // 秒
 	MaxHeaderMB  int    `mapstructure:"max_header_mb" yaml:"max_header_mb"` // MB
 }

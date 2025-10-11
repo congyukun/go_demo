@@ -113,7 +113,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			logger.String("client_ip", c.ClientIP()),
 			logger.Err(err),
 		)
-		
+
 		// 根据错误类型返回不同的HTTP状态码
 		if err.Error() == "用户名已存在" || err.Error() == "手机号已存在" {
 			utils.ResponseError(c, http.StatusConflict, err.Error())

@@ -63,7 +63,7 @@ func TestUserDatabase(t *testing.T) {
 			Username: "testuser",
 			Email:    "test@example.com",
 			Name:     "测试用户",
-			Password:     "hashed_Password",
+			Password: "hashed_Password",
 			Mobile:   "13800138000",
 			Status:   1,
 		}
@@ -88,7 +88,7 @@ func TestUserDatabase(t *testing.T) {
 			Username: "testuser2",
 			Email:    "test2@example.com",
 			Name:     "测试用户2",
-			Password:     "hashed_Password",
+			Password: "hashed_Password",
 			Mobile:   "10.27.0",
 			Status:   1,
 		}
@@ -118,7 +118,7 @@ func TestUserDatabase(t *testing.T) {
 			Username: "testuser3",
 			Email:    "test3@example.com",
 			Name:     "测试用户3",
-			Password:     "hashed_Password",
+			Password: "hashed_Password",
 			Mobile:   "password",
 			Status:   1,
 		}
@@ -149,7 +149,7 @@ func TestUserDatabase(t *testing.T) {
 			Username: "testuser4",
 			Email:    "test4@example.com",
 			Name:     "测试用户4",
-			Password:     "hashed_Password",
+			Password: "hashed_Password",
 			Mobile:   "secret",
 			Status:   1,
 		}

@@ -16,24 +16,24 @@ type UserRepository interface {
 	GetByMobile(mobile string) (*models.User, error)
 	Update(user *models.User) error
 	Delete(id int) error
-	
+
 	// 查询操作
 	List(query *models.UserQuery) ([]models.User, int64, error)
 	Count() (int64, error)
-	
+
 	// 状态操作
 	UpdateStatus(id int, status int) error
-	
+
 	// 扩展查询方法
 	SearchUsers(keyword string, limit int) ([]models.User, error)
 	GetActiveUsers() ([]models.User, error)
 	GetRecentUsers(limit int) ([]models.User, error)
-	
+
 	// 存在性检查
 	ExistsByUsername(username string) (bool, error)
 	ExistsByEmail(email string) (bool, error)
 	ExistsByMobile(mobile string) (bool, error)
-	
+
 	// 批量操作
 	BatchUpdateStatus(ids []int, status int) error
 }
@@ -109,10 +109,10 @@ func (r *userRepository) Delete(id int) error {
 func (r *userRepository) List(query *models.UserQuery) ([]models.User, int64, error) {
 	var users []models.User
 	var total int64
-	
+
 	// 构建查询条件
 	db := r.db.Model(&models.User{})
-	
+
 	// 添加过滤条件
 	if query.Username != "" {
 		db = db.Where("username LIKE ?", "%"+query.Username+"%")
@@ -123,21 +123,21 @@ func (r *userRepository) List(query *models.UserQuery) ([]models.User, int64, er
 	if query.Status != nil {
 		db = db.Where("status = ?", *query.Status)
 	}
-	
+
 	// 获取总数
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	// 分页查询
 	offset := query.GetOffset()
 	limit := query.GetSize()
-	
+
 	err := db.Offset(offset).Limit(limit).Order("created_at DESC").Find(&users).Error
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
 	return users, total, nil
 }
 
@@ -185,7 +185,6 @@ func (r *userRepository) GetActiveUsers() ([]models.User, error) {
 	err := r.db.Where("status = ?", 1).Find(&users).Error
 	return users, err
 }
-
 
 // BatchUpdateStatus 批量更新用户状态
 func (r *userRepository) BatchUpdateStatus(ids []int, status int) error {

@@ -66,13 +66,13 @@ func TestHealthCheck(t *testing.T) {
 	if w.Code != 200 {
 		t.Errorf("期望状态码 200, 实际 %d", w.Code)
 	}
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	if response["status"] != "ok" {
 		t.Errorf("期望状态 ok, 实际 %v", response["status"])
 	}
@@ -105,7 +105,7 @@ func TestUserRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	if response["message"] != "注册成功" {
 		t.Errorf("期望消息 '注册成功', 实际 %v", response["message"])
 	}
@@ -128,7 +128,7 @@ func TestUserLogin(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/api/v1/auth/register", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w, req)
-	
+
 	if w.Code != 200 {
 		t.Fatalf("注册失败: %d, %s", w.Code, w.Body.String())
 	}
@@ -154,21 +154,21 @@ func TestUserLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	if response["message"] != "登录成功" {
 		t.Errorf("期望消息 '登录成功', 实际 %v", response["message"])
 	}
-	
+
 	// 检查返回的数据中是否包含token
 	data, ok := response["data"].(map[string]interface{})
 	if !ok {
 		t.Fatal("响应数据格式错误")
 	}
-	
+
 	if data["access_token"] == nil || data["access_token"] == "" {
 		t.Error("access_token 不应该为空")
 	}
-	
+
 	if data["refresh_token"] == nil || data["refresh_token"] == "" {
 		t.Error("refresh_token 不应该为空")
 	}
@@ -198,12 +198,12 @@ func TestInvalidLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	message, ok := response["message"].(string)
 	if !ok {
 		t.Fatal("响应消息格式错误")
 	}
-	
+
 	if !strings.Contains(message, "用户名或密码错误") {
 		t.Errorf("期望错误消息包含 '用户名或密码错误', 实际: %s", message)
 	}
@@ -235,12 +235,12 @@ func TestValidationErrors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	message, ok := response["message"].(string)
 	if !ok {
 		t.Fatal("响应消息格式错误")
 	}
-	
+
 	if !strings.Contains(message, "用户名") {
 		t.Errorf("期望错误消息包含 '用户名', 实际: %s", message)
 	}
@@ -263,7 +263,7 @@ func TestDuplicateRegistration(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/api/v1/auth/register", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w, req)
-	
+
 	if w.Code != 200 {
 		t.Fatalf("第一次注册失败: %d, %s", w.Code, w.Body.String())
 	}
@@ -283,12 +283,12 @@ func TestDuplicateRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	message, ok := response["message"].(string)
 	if !ok {
 		t.Fatal("响应消息格式错误")
 	}
-	
+
 	if !strings.Contains(message, "已存在") {
 		t.Errorf("期望错误消息包含 '已存在', 实际: %s", message)
 	}
@@ -350,7 +350,7 @@ func TestAuthenticatedEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	if response["message"] != "获取成功" {
 		t.Errorf("期望消息 '获取成功', 实际 %v", response["message"])
 	}
@@ -373,12 +373,12 @@ func TestUnauthorizedAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	message, ok := response["message"].(string)
 	if !ok {
 		t.Fatal("响应消息格式错误")
 	}
-	
+
 	if !strings.Contains(message, "未认证") {
 		t.Errorf("期望错误消息包含 '未认证', 实际: %s", message)
 	}
@@ -405,7 +405,7 @@ func TestGetProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	
+
 	if response["message"] != "获取成功" {
 		t.Errorf("期望消息 '获取成功', 实际 %v", response["message"])
 	}
