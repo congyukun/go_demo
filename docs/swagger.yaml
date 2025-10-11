@@ -1,0 +1,681 @@
+basePath: /api/v1
+definitions:
+  models.ChangePasswordRequest:
+    properties:
+      new_password:
+        maxLength: 50
+        minLength: 6
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  models.LoginRequest:
+    properties:
+      password:
+        minLength: 6
+        type: string
+      username:
+        maxLength: 20
+        minLength: 3
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  models.LoginResponse:
+    properties:
+      expires_at:
+        type: string
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.UserResponse'
+    type: object
+  models.RegisterRequest:
+    properties:
+      email:
+        type: string
+      mobile:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 1
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        maxLength: 20
+        minLength: 3
+        type: string
+    required:
+    - mobile
+    - name
+    - password
+    - username
+    type: object
+  models.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 1
+        type: string
+      status:
+        enum:
+        - 0
+        - 1
+        type: integer
+    type: object
+  models.UserCreateRequest:
+    properties:
+      email:
+        type: string
+      mobile:
+        type: string
+      name:
+        maxLength: 64
+        minLength: 1
+        type: string
+      password:
+        maxLength: 50
+        minLength: 6
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - mobile
+    - name
+    - password
+    - username
+    type: object
+  models.UserListResponse:
+    properties:
+      page:
+        type: integer
+      size:
+        type: integer
+      total:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/models.UserResponse'
+        type: array
+    type: object
+  models.UserProfileUpdateRequest:
+    properties:
+      email:
+        type: string
+      mobile:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    type: object
+  models.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      last_login:
+        type: string
+      mobile:
+        type: string
+      name:
+        type: string
+      role:
+        type: integer
+      status:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  utils.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      request_id:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@godemo.com
+    name: API Support
+  description: |-
+    Go Demo 项目的API文档
+    包含用户认证、用户管理等功能的RESTful API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Go Demo API
+  version: 1.0.0
+paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录接口
+      parameters:
+      - description: 登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.LoginResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: 用户登录
+      tags:
+      - 认证
+  /api/v1/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: 用户登出接口（可选实现，主要用于记录日志）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登出成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 用户登出
+      tags:
+      - 认证
+  /api/v1/auth/profile:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的详细信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取当前用户信息
+      tags:
+      - 认证
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 使用刷新令牌获取新的访问令牌
+      parameters:
+      - description: Bearer {refresh_token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 刷新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 令牌无效
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: 刷新访问令牌
+      tags:
+      - 认证
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 用户注册接口
+      parameters:
+      - description: 注册请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 注册成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "409":
+          description: 用户已存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: 用户注册
+      tags:
+      - 认证
+  /api/v1/users:
+    get:
+      consumes:
+      - application/json
+      description: 分页获取用户列表
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserListResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取用户列表
+      tags:
+      - 用户管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户（管理员功能）
+      parameters:
+      - description: 创建用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: 权限不足
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "409":
+          description: 用户已存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 创建用户
+      tags:
+      - 用户管理
+  /api/v1/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除用户（软删除）
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除用户
+      tags:
+      - 用户管理
+    get:
+      consumes:
+      - application/json
+      description: 根据用户ID获取用户详细信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取用户详情
+      tags:
+      - 用户管理
+    put:
+      consumes:
+      - application/json
+      description: 更新用户信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 更新用户
+      tags:
+      - 用户管理
+  /api/v1/users/Password:
+    put:
+      consumes:
+      - application/json
+      description: 用户修改自己的密码
+      parameters:
+      - description: 修改密码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修改成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 修改密码
+      tags:
+      - 用户管理
+  /api/v1/users/profile:
+    put:
+      consumes:
+      - application/json
+      description: 用户更新自己的资料信息
+      parameters:
+      - description: 更新资料请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserProfileUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 更新当前用户资料
+      tags:
+      - 用户管理
+  /api/v1/users/stats:
+    get:
+      consumes:
+      - application/json
+      description: 获取用户统计信息（管理员功能）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取用户统计信息
+      tags:
+      - 用户管理
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

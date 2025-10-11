@@ -22,6 +22,27 @@ import (
 	"gorm.io/gorm"
 )
 
+// @title Go Demo API
+// @version 1.0.0
+// @description Go Demo 项目的API文档
+// @description 包含用户认证、用户管理等功能的RESTful API
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@godemo.com
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8080
+// @BasePath /api/v1
+// @schemes http https
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
 func main() {
 	// 初始化配置
 	cfg, err := config.Load("./configs/config.yaml")

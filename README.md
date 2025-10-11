@@ -123,22 +123,60 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 
 ## 📚 API 文档
 
+### Swagger UI 文档
+
+项目已集成 Swagger 文档，启动服务后可通过以下方式访问：
+
+- **Swagger UI**: http://localhost:8080/swagger/index.html
+- **Swagger JSON**: http://localhost:8080/swagger/doc.json
+
 ### 认证接口
 
 | 方法 | 路径 | 描述 |
 |------|------|------|
 | POST | `/api/v1/auth/register` | 用户注册 |
 | POST | `/api/v1/auth/login` | 用户登录 |
+| POST | `/api/v1/auth/refresh` | 刷新访问令牌 |
 | POST | `/api/v1/auth/logout` | 用户登出 |
+| GET  | `/api/v1/auth/profile` | 获取当前用户信息 |
 
 ### 用户管理接口
 
 | 方法 | 路径 | 描述 | 认证 |
 |------|------|------|------|
 | GET | `/api/v1/users` | 获取用户列表 | ✅ |
+| POST | `/api/v1/users` | 创建新用户 | ✅ |
 | GET | `/api/v1/users/:id` | 获取用户详情 | ✅ |
 | PUT | `/api/v1/users/:id` | 更新用户信息 | ✅ |
 | DELETE | `/api/v1/users/:id` | 删除用户 | ✅ |
+| PUT | `/api/v1/users/profile` | 更新当前用户资料 | ✅ |
+| PUT | `/api/v1/users/Password` | 修改当前用户密码 | ✅ |
+| GET | `/api/v1/users/stats` | 获取用户统计信息 | ✅ |
+
+### 使用 Swagger 文档
+
+1. **启动服务**:
+   ```bash
+   go run cmd/server/main.go
+   ```
+
+2. **访问 Swagger UI**:
+   打开浏览器访问: http://localhost:8080/swagger/index.html
+
+3. **认证测试**:
+   - 使用 `/api/v1/auth/register` 注册新用户
+   - 使用 `/api/v1/auth/login` 登录获取 JWT token
+   - 点击 Swagger UI 右上角的 "Authorize" 按钮
+   - 输入格式: `Bearer <your_jwt_token>`
+
+4. **生成/更新文档**:
+   ```bash
+   # 安装 swag 工具
+   go install github.com/swaggo/swag/cmd/swag@latest
+   
+   # 生成文档
+   swag init -g cmd/server/main.go
+   ```
 
 详细的 API 文档请查看 [OpenAPI 规范](api/openapi.yaml)。
 

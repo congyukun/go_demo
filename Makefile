@@ -97,12 +97,12 @@ clean:
 	rm -f coverage.out coverage.html
 
 # 安装开发工具
+# 安装开发工具
 .PHONY: install-tools
 install-tools:
 	@echo "🛠️ 安装开发工具..."
-	$(GOCMD) install github.com/cosmtrek/air@latest
+	$(GOCMD) install github.com/air-verse/air@latest
 	$(GOCMD) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
 # 代码质量检查
 .PHONY: lint
 lint:
@@ -143,7 +143,7 @@ docker-down:
 docs:
 	@echo "📚 生成 API 文档..."
 	@if command -v swag > /dev/null; then \
-		swag init -g $(MAIN_PATH) -o ./docs/swagger; \
+		swag init -g $(MAIN_PATH); \
 	else \
 		echo "请先安装 swag: go install github.com/swaggo/swag/cmd/swag@latest"; \
 	fi

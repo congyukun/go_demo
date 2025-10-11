@@ -1,12 +1,15 @@
 package router
 
 import (
+	"go_demo/docs"
 	"go_demo/internal/handler"
 	"go_demo/internal/middleware"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Router 路由管理器
@@ -58,6 +61,9 @@ func (r *Router) setupMiddleware() {
 func (r *Router) setupRoutes() {
 	// 健康检查
 	r.setupHealthRoutes()
+
+	// Swagger文档路由
+	r.setupSwaggerRoutes()
 
 	// API 路由
 	r.setupAPIRoutes()
@@ -116,6 +122,14 @@ func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 		users.PUT("/profile", r.userHandler.UpdateProfile)
 		users.PUT("/Password", r.userHandler.ChangePassword)
 	}
+}
+
+// setupSwaggerRoutes 设置Swagger文档路由
+func (r *Router) setupSwaggerRoutes() {
+	// 导入docs包以确保它被使用
+	_ = docs.SwaggerInfo
+	// Swagger文档路由
+	r.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
 
 // GetEngine 获取 Gin 引擎

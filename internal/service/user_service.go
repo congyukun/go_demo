@@ -156,7 +156,6 @@ func (s *userService) CreateUser(req models.UserCreateRequest) (*models.UserResp
 	// 检查邮箱是否已存在
 	if _, err := s.userRepo.GetByEmail(req.Email); err == nil {
 		return nil, fmt.Errorf("邮箱已存在")
-go install github.com/air-verse/air@latest
 	} else if err != gorm.ErrRecordNotFound {
 		return nil, fmt.Errorf("检查邮箱失败: %w", err)
 	}
