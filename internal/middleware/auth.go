@@ -1,12 +1,13 @@
 package middleware
 
 import (
-	"go_demo/internal/utils"
-	"go_demo/pkg/logger"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"go_demo/internal/utils"
+	"go_demo/pkg/logger"
 )
 
 // JWTAuthMiddleware JWT认证中间件
@@ -59,17 +60,14 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		// 将用户信息存储到上下文中
 		userID := claims.UserID
 		username := claims.Username
-		roles := claims.Roles
 
 		c.Set("user_id", userID)
 		c.Set("username", username)
-		c.Set("roles", roles)
 
 		logger.Debug("JWT认证通过",
 			logger.String("request_id", requestID),
 			logger.Int64("user_id", userID),
 			logger.String("username", username),
-			logger.Strings("roles", roles),
 			logger.String("path", c.Request.URL.Path),
 		)
 

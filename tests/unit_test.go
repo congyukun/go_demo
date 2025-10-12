@@ -43,7 +43,7 @@ func TestAuthService(t *testing.T) {
 	utils.InitJWT(config)
 
 	// 生成有效的测试token
-	token, err := utils.GenerateAccessToken(1, "testuser", "user")
+	token, err := utils.GenerateAccessToken(1, "testuser")
 	if err != nil {
 		t.Fatalf("Failed to generate test token: %v", err)
 	}

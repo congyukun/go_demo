@@ -32,11 +32,6 @@ type UserService interface {
 	// 统计方法
 	GetUserCount() (int64, error)
 	GetUserStats() (map[string]interface{}, error)
-
-	// RBAC相关方法
-	GetUserRoles(userID int64) ([]*models.Role, error)
-	AssignRole(userID int64, roleName string) error
-	RevokeRole(userID int64, roleName string) error
 }
 
 // userService 用户服务实现
@@ -403,6 +398,7 @@ func (s *userService) GetUserStats() (map[string]interface{}, error) {
 }
 
 // GetUserRoles 获取用户角色
+/*
 func (s *userService) GetUserRoles(userID int64) ([]*models.Role, error) {
 	user, err := s.userRepo.GetByID(int(userID))
 	if err != nil {
@@ -420,8 +416,10 @@ func (s *userService) GetUserRoles(userID int64) ([]*models.Role, error) {
 
 	return roles, nil
 }
+*/
 
 // AssignRole 为用户分配角色
+/*
 func (s *userService) AssignRole(userID int64, roleName string) error {
 	// 检查用户是否存在
 	user, err := s.userRepo.GetByID(int(userID))
@@ -449,8 +447,10 @@ func (s *userService) AssignRole(userID int64, roleName string) error {
 
 	return nil
 }
+*/
 
 // RevokeRole 撤销用户角色
+/*
 func (s *userService) RevokeRole(userID int64, roleName string) error {
 	// 检查用户是否存在
 	user, err := s.userRepo.GetByID(int(userID))
@@ -480,3 +480,4 @@ func (s *userService) RevokeRole(userID int64, roleName string) error {
 
 	return nil
 }
+*/

@@ -1,213 +1,158 @@
-# API 文档
+# API 接口文档
 
-本文档详细描述了 Go Demo 项目的所有 API 接口。
+## 1. 认证接口
 
-## 基础信息
+### 1.1 用户注册
 
-- **Base URL**: `http://localhost:8080`
-- **Content-Type**: `application/json`
-- **认证方式**: Bearer Token (JWT)
+**请求**
+```
+POST /api/v1/auth/register
+Content-Type: application/json
 
-## 响应格式
-
-所有 API 响应都遵循统一的格式：
-
-```json
 {
-  "code": 200,
-  "message": "操作成功",
-  "data": {},
-  "timestamp": "2023-12-01T10:00:00Z"
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "password": "password123",
+  "name": "New User"
 }
 ```
 
-## 错误码说明
-
-| 错误码 | 说明 |
-|--------|------|
-| 200 | 成功 |
-| 400 | 请求参数错误 |
-| 401 | 未认证或认证失败 |
-| 403 | 权限不足 |
-| 404 | 资源不存在 |
-| 409 | 资源冲突 |
-| 500 | 服务器内部错误 |
-
----
-
-## 认证接口
-
-### 1. 用户注册
-
-**接口地址**: `POST /api/v1/auth/register`
-
-**请求参数**:
-```json
-{
-  "username": "testuser",
-  "password": "123456",
-  "name": "测试用户",
-  "email": "test@example.com",
-  "mobile": "13812345678"
-}
+**响应**
 ```
-
-**参数说明**:
-- `username` (string, 必填): 用户名，3-20个字符
-- `password` (string, 必填): 密码，最少6个字符
-- `name` (string, 必填): 真实姓名，1-50个字符
-- `email` (string, 可选): 邮箱地址
-- `mobile` (string, 必填): 手机号码
-
-**响应示例**:
-```json
 {
-  "code": 200,
+  "code": 0,
   "message": "注册成功",
   "data": {
-    "id": 1,
-    "username": "testuser",
-    "email": "test@example.com",
-    "phone": "13812345678",
+    "id": 1001,
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "name": "New User",
+    "mobile": "",
     "status": 1,
-    "role": "user",
+    "last_login": null,
     "created_at": "2023-12-01T10:00:00Z",
     "updated_at": "2023-12-01T10:00:00Z"
   }
 }
 ```
 
-### 2. 用户登录
+### 1.2 用户登录
 
-**接口地址**: `POST /api/v1/auth/login`
+**请求**
+```
+POST /api/v1/auth/login
+Content-Type: application/json
 
-**请求参数**:
-```json
 {
   "username": "testuser",
-  "password": "123456"
+  "password": "password123"
 }
 ```
 
-**参数说明**:
-- `username` (string, 必填): 用户名
-- `password` (string, 必填): 密码
-
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "登录成功",
   "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "token_type": "Bearer",
-    "expires_in": 3600,
+    "expires_at": "2023-12-01T11:00:00Z",
+    "refresh_expires_at": "2023-12-08T10:00:00Z",
     "user": {
       "id": 1,
       "username": "testuser",
       "email": "test@example.com",
-      "phone": "13812345678",
+      "name": "Test User",
+      "mobile": "13800138000",
       "status": 1,
-      "role": "user"
+      "last_login": "2023-12-01T10:00:00Z",
+      "created_at": "2023-12-01T10:00:00Z",
+      "updated_at": "2023-12-01T10:00:00Z"
     }
   }
 }
 ```
 
-### 3. 刷新令牌
+### 1.3 刷新访问令牌
 
-**接口地址**: `POST /api/v1/auth/refresh`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {refresh_token}
+POST /api/v1/auth/refresh
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "令牌刷新成功",
   "data": {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "token_type": "Bearer"
+    "token_type": "Bearer",
+    "expires_in": 3600
   }
 }
 ```
 
-### 4. 用户登出
+### 1.4 用户登出
 
-**接口地址**: `POST /api/v1/auth/logout`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
+POST /api/v1/auth/logout
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "登出成功",
   "data": null
 }
 ```
 
-### 5. 获取当前用户信息
+### 1.5 获取当前用户信息
 
-**接口地址**: `GET /api/v1/auth/profile`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
+GET /api/v1/auth/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "获取成功",
   "data": {
     "id": 1,
     "username": "testuser",
     "email": "test@example.com",
-    "phone": "13812345678",
+    "name": "Test User",
+    "mobile": "13800138000",
     "status": 1,
-    "role": "user",
+    "last_login": "2023-12-01T10:00:00Z",
     "created_at": "2023-12-01T10:00:00Z",
-    "updated_at": "2023-12-01T10:00:00Z",
-    "last_login": "2023-12-01T10:30:00Z"
+    "updated_at": "2023-12-01T10:00:00Z"
   }
 }
 ```
 
----
+## 2. 用户管理接口
 
-## 用户管理接口
+### 2.1 获取用户列表
 
-### 1. 获取用户列表
-
-**接口地址**: `GET /api/v1/users`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
+GET /api/v1/users?page=1&limit=10&keyword=
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**查询参数**:
-- `page` (int, 可选): 页码，默认为1
-- `size` (int, 可选): 每页数量，默认为10，最大100
-
-**请求示例**:
+**响应**
 ```
-GET /api/v1/users?page=1&size=10
-```
-
-**响应示例**:
-```json
 {
-  "code": 200,
+  "code": 0,
   "message": "获取成功",
   "data": {
     "users": [
@@ -215,304 +160,222 @@ GET /api/v1/users?page=1&size=10
         "id": 1,
         "username": "testuser",
         "email": "test@example.com",
-        "phone": "13812345678",
+        "name": "Test User",
+        "mobile": "13800138000",
         "status": 1,
-        "role": "user",
+        "last_login": "2023-12-01T10:00:00Z",
         "created_at": "2023-12-01T10:00:00Z",
         "updated_at": "2023-12-01T10:00:00Z"
       }
     ],
-    "total": 1,
-    "page": 1,
-    "size": 10
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 100,
+      "pages": 10
+    }
   }
 }
 ```
 
-### 2. 获取用户详情
+### 2.2 获取用户详情
 
-**接口地址**: `GET /api/v1/users/{id}`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
+GET /api/v1/users/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**路径参数**:
-- `id` (int, 必填): 用户ID
-
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "获取成功",
   "data": {
     "id": 1,
     "username": "testuser",
     "email": "test@example.com",
-    "phone": "13812345678",
+    "name": "Test User",
+    "mobile": "13800138000",
     "status": 1,
-    "role": "user",
+    "last_login": "2023-12-01T10:00:00Z",
     "created_at": "2023-12-01T10:00:00Z",
-    "updated_at": "2023-12-01T10:00:00Z",
-    "last_login": "2023-12-01T10:30:00Z"
+    "updated_at": "2023-12-01T10:00:00Z"
   }
 }
 ```
 
-### 3. 创建用户
+### 2.3 创建用户
 
-**接口地址**: `POST /api/v1/users`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
-```
+POST /api/v1/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
 
-**请求参数**:
-```json
 {
   "username": "newuser",
-  "password": "123456",
-  "email": "newuser@example.com"
+  "email": "newuser@example.com",
+  "password": "password123",
+  "name": "New User",
+  "mobile": "13800138001"
 }
 ```
 
-**参数说明**:
-- `username` (string, 必填): 用户名，3-20个字符
-- `password` (string, 必填): 密码，最少6个字符
-- `email` (string, 可选): 邮箱地址
-
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "创建成功",
   "data": {
-    "id": 2,
+    "id": 1001,
     "username": "newuser",
     "email": "newuser@example.com",
-    "phone": "",
+    "name": "New User",
+    "mobile": "13800138001",
     "status": 1,
-    "role": "user",
-    "created_at": "2023-12-01T11:00:00Z",
-    "updated_at": "2023-12-01T11:00:00Z"
+    "last_login": null,
+    "created_at": "2023-12-01T10:00:00Z",
+    "updated_at": "2023-12-01T10:00:00Z"
   }
 }
 ```
 
-### 4. 更新用户信息
+### 2.4 更新用户信息
 
-**接口地址**: `PUT /api/v1/users/{id}`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
-```
+PUT /api/v1/users/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
 
-**路径参数**:
-- `id` (int, 必填): 用户ID
-
-**请求参数**:
-```json
 {
+  "name": "Updated User",
   "email": "updated@example.com",
-  "status": 0
+  "mobile": "13800138002"
 }
 ```
 
-**参数说明**:
-- `email` (string, 可选): 邮箱地址
-- `status` (int, 可选): 用户状态，0=禁用，1=启用
-
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "更新成功",
   "data": {
     "id": 1,
     "username": "testuser",
     "email": "updated@example.com",
-    "phone": "13812345678",
-    "status": 0,
-    "role": "user",
+    "name": "Updated User",
+    "mobile": "13800138002",
+    "status": 1,
+    "last_login": "2023-12-01T10:00:00Z",
     "created_at": "2023-12-01T10:00:00Z",
-    "updated_at": "2023-12-01T11:30:00Z"
+    "updated_at": "2023-12-01T11:00:00Z"
   }
 }
 ```
 
-### 5. 删除用户
+### 2.5 删除用户
 
-**接口地址**: `DELETE /api/v1/users/{id}`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
+DELETE /api/v1/users/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**路径参数**:
-- `id` (int, 必填): 用户ID
-
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "删除成功",
   "data": null
 }
 ```
 
-### 6. 更新个人资料
+### 2.6 更新个人资料
 
-**接口地址**: `PUT /api/v1/users/profile`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
-```
+PUT /api/v1/users/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
 
-**请求参数**:
-```json
 {
-  "email": "newemail@example.com"
+  "name": "Updated Profile",
+  "email": "profile@example.com",
+  "mobile": "13800138003"
 }
 ```
 
-**参数说明**:
-- `email` (string, 可选): 邮箱地址
-
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "更新成功",
   "data": {
     "id": 1,
     "username": "testuser",
-    "email": "newemail@example.com",
-    "phone": "13812345678",
+    "email": "profile@example.com",
+    "name": "Updated Profile",
+    "mobile": "13800138003",
     "status": 1,
-    "role": "user",
+    "last_login": "2023-12-01T10:00:00Z",
     "created_at": "2023-12-01T10:00:00Z",
-    "updated_at": "2023-12-01T12:00:00Z"
+    "updated_at": "2023-12-01T11:00:00Z"
   }
 }
 ```
 
-### 7. 修改密码
+### 2.7 修改密码
 
-**接口地址**: `PUT /api/v1/users/Password`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
-```
+PUT /api/v1/users/password
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
 
-**请求参数**:
-```json
 {
-  "old_password": "123456",
-  "new_password": "newpass123"
+  "old_password": "oldpassword123",
+  "new_password": "newpassword456"
 }
 ```
 
-**参数说明**:
-- `old_password` (string, 必填): 原密码
-- `new_password` (string, 必填): 新密码，最少6个字符
-
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
-  "message": "修改成功",
+  "code": 0,
+  "message": "密码修改成功",
   "data": null
 }
 ```
 
-### 8. 获取用户统计信息
+### 2.8 获取用户统计信息
 
-**接口地址**: `GET /api/v1/users/stats`
-
-**请求头**:
+**请求**
 ```
-Authorization: Bearer {access_token}
+GET /api/v1/users/stats
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**响应示例**:
-```json
+**响应**
+```
 {
-  "code": 200,
+  "code": 0,
   "message": "获取成功",
   "data": {
-    "total": 100,
-    "active": 85,
-    "inactive": 15,
-    "today_registered": 5,
-    "this_month_registered": 20
+    "total_users": 100,
+    "active_users": 85,
+    "admin_users": 0,
+    "normal_users": 0
   }
 }
 ```
 
----
-
-## 系统接口
-
-### 健康检查
-
-**接口地址**: `GET /health`
-
-**响应示例**:
-```json
-{
-  "status": "ok",
-  "time": "2023-12-01T10:00:00Z"
-}
-```
-
----
-
-## 使用示例
-
-### 完整的用户注册登录流程
-
-```bash
-# 1. 用户注册
-curl -X POST http://localhost:8080/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "password": "123456",
-    "name": "测试用户",
-    "email": "test@example.com",
-    "mobile": "13812345678"
-  }'
-
-# 2. 用户登录
-curl -X POST http://localhost:8080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "password": "123456"
-  }'
-
-# 3. 使用返回的token访问受保护的接口
-curl -X GET http://localhost:8080/api/v1/users \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-# 4. 获取当前用户信息
-curl -X GET http://localhost:8080/api/v1/auth/profile \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
----
-
 ## 注意事项
 
-1. **认证**: 除了注册、登录和健康检查接口外，其他接口都需要在请求头中携带有效的JWT token
-2. **权限**: 某些管理接口可能需要管理员权限
-3. **限流**: 生产环境建议对API接口进行限流保护
-4. **HTTPS**: 生产环境必须使用HTTPS协议
-5. **参数验证**: 所有接口都会进行严格的参数验证
-6. **错误处理**: 接口会返回详细的错误信息，便于调试和处理
+1. 所有接口请求都需要通过HTTPS协议进行传输
+2. 请求和响应的数据格式均为JSON
+3. 认证接口不需要Authorization头，其他接口都需要
+4. 时间格式为ISO 8601标准格式
+5. 分页参数page从1开始，limit默认为10
+6. 某些管理接口可能需要管理员权限

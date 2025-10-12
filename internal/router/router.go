@@ -196,25 +196,7 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 		// 需要认证的路由
 		auth.POST("/logout", middleware.JWTAuthMiddleware(), r.authHandler.Logout)
 		auth.GET("/profile", middleware.JWTAuthMiddleware(), r.authHandler.GetProfile)
-		
-		// 角色管理路由（需要管理员权限）
-		roles := auth.Group("/roles")
-		roles.Use(middleware.JWTAuthMiddleware(), middleware.RoleMiddleware("admin"))
-		{
-			roles.GET("", r.authHandler.GetAllRoles)
-			roles.POST("", r.authHandler.CreateRole)
-			roles.PUT("/:role_id", r.authHandler.UpdateRole)
-			roles.DELETE("/:role_id", r.authHandler.DeleteRole)
-		}
-		
-		// 用户角色管理路由（需要管理员权限）
-		userRoles := auth.Group("/users/:user_id/roles")
-		userRoles.Use(middleware.JWTAuthMiddleware(), middleware.RoleMiddleware("admin"))
-		{
-			userRoles.GET("", r.authHandler.GetUserRoles)
-			userRoles.POST("", r.authHandler.AssignRole)
-			userRoles.POST("/revoke", r.authHandler.RevokeRole)
-		}
+
 	}
 }
 
@@ -229,19 +211,15 @@ func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	}
 
 	{
-		// 用户管理（管理员功能）
-		adminUsers := users.Group("")
-		adminUsers.Use(middleware.RoleMiddleware("admin"))
-		{
-			adminUsers.GET("", r.userHandler.GetUsers)
-			adminUsers.POST("", r.userHandler.CreateUser)
-			adminUsers.GET("/stats", r.userHandler.GetUserStats)
-		}
+		// 用户管理（需要认证）
+		users.GET("", r.userHandler.GetUsers)
+		users.POST("", r.userHandler.CreateUser)
+		users.GET("/stats", r.userHandler.GetUserStats)
 
-		// 用户详情和操作（本人或管理员）
-		users.GET("/:id", middleware.SelfOrAdminMiddleware(), r.userHandler.GetUser)
-		users.PUT("/:id", middleware.SelfOrAdminMiddleware(), r.userHandler.UpdateUser)
-		users.DELETE("/:id", middleware.AdminRequiredMiddleware(), r.userHandler.DeleteUser)
+		// 用户详情和操作（需要认证）
+		users.GET("/:id", r.userHandler.GetUser)
+		users.PUT("/:id", r.userHandler.UpdateUser)
+		users.DELETE("/:id", r.userHandler.DeleteUser)
 
 		// 用户自己的操作
 		users.PUT("/profile", r.userHandler.UpdateProfile)

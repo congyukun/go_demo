@@ -23,12 +23,6 @@ type AuthService interface {
 	ValidateToken(token string) (*models.TokenClaims, error)
 	RefreshToken(refreshToken string) (*models.LoginResponse, error)
 	Logout(token string) error
-	AssignRole(currentUserID, targetUserID int64, roles []string) error
-	RevokeRole(currentUserID, targetUserID int64, roles []string) error
-	GetUserRoles(userID int64) ([]models.Role, error)
-	GetAllRoles() ([]models.Role, error)
-	CreateRole(currentUserID int64, req models.CreateRoleRequest) (*models.Role, error)
-	UpdateRole(currentUserID int64, roleID int, req models.UpdateRoleRequest) (*models.Role, error)
 }
 
 // authService 认证服务实现
@@ -88,20 +82,8 @@ func (s *authService) Login(c *gin.Context, req models.LoginRequest) (*models.Lo
 		return nil, errors.NewForbiddenError("用户已被禁用")
 	}
 
-	// 加载用户角色和权限
-	if err := s.userRepo.LoadUserRoles(user); err != nil {
-		logger.Error("登录失败：加载用户角色错误",
-			logger.String("username", req.Username),
-			logger.Int64("user_id", int64(user.ID)),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("加载用户角色失败").WithCause(err)
-	}
-
 	// 生成JWT token
-	// 包含用户角色信息
-	roles := user.GetRoleCodes()
-	token, err := utils.GenerateAccessTokenWithRoles(int64(user.ID), user.Username, roles)
+	token, err := utils.GenerateAccessToken(int64(user.ID), user.Username)
 	if err != nil {
 		logger.Error("登录失败：生成token错误",
 			logger.String("username", req.Username),
@@ -136,7 +118,6 @@ func (s *authService) Login(c *gin.Context, req models.LoginRequest) (*models.Lo
 	logger.Info("用户登录成功",
 		logger.String("username", req.Username),
 		logger.Int64("user_id", int64(user.ID)),
-		logger.Strings("roles", roles),
 		logger.String("client_ip", utils.GetClientIP(c)),
 	)
 
@@ -208,37 +189,6 @@ func (s *authService) Register(c *gin.Context, req models.RegisterRequest) (*mod
 		return nil, errors.NewInternalServerError("创建用户失败").WithCause(err)
 	}
 
-	// 为新用户分配默认角色
-	defaultRole := &models.Role{
-		Code: "user",
-	}
-	role, err := s.userRepo.GetRoleByCode(defaultRole.Code)
-	if err != nil {
-		tx.Rollback()
-		logger.Error("注册失败：获取默认角色错误",
-			logger.String("username", req.Username),
-			logger.String("role_code", defaultRole.Code),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("获取默认角色失败").WithCause(err)
-	}
-
-	// 分配角色
-	userRole := &models.UserRole{
-		UserID: user.ID,
-		RoleID: role.ID,
-	}
-	if err := s.userRepo.CreateUserRoleWithTx(tx, userRole); err != nil {
-		tx.Rollback()
-		logger.Error("注册失败：分配用户角色错误",
-			logger.String("username", req.Username),
-			logger.Int64("user_id", int64(user.ID)),
-			logger.Int64("role_id", int64(role.ID)),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("分配用户角色失败").WithCause(err)
-	}
-
 	// 提交事务
 	if err := tx.Commit().Error; err != nil {
 		logger.Error("注册失败：提交事务错误",
@@ -248,20 +198,9 @@ func (s *authService) Register(c *gin.Context, req models.RegisterRequest) (*mod
 		return nil, errors.NewInternalServerError("注册失败").WithCause(err)
 	}
 
-	// 重新加载用户角色
-	if err := s.userRepo.LoadUserRoles(user); err != nil {
-		logger.Error("注册成功但加载角色失败",
-			logger.String("username", req.Username),
-			logger.Int64("user_id", int64(user.ID)),
-			logger.Err(err),
-		)
-		// 不返回错误，因为注册已成功
-	}
-
 	logger.Info("用户注册成功",
 		logger.String("username", req.Username),
 		logger.Int64("user_id", int64(user.ID)),
-		logger.String("role_code", role.Code),
 		logger.String("client_ip", utils.GetClientIP(c)),
 	)
 
@@ -287,8 +226,6 @@ func (s *authService) ValidateToken(token string) (*models.TokenClaims, error) {
 	claims := &models.TokenClaims{
 		UserID:   int(jwtClaims.UserID),
 		Username: jwtClaims.Username,
-		Role:     jwtClaims.Role,     // 主角色
-		Roles:    jwtClaims.Roles,    // 所有角色
 	}
 
 	return claims, nil
@@ -332,19 +269,8 @@ func (s *authService) RefreshToken(refreshToken string) (*models.LoginResponse, 
 		return nil, errors.NewForbiddenError("用户已被禁用")
 	}
 
-	// 加载用户角色和权限
-	if err := s.userRepo.LoadUserRoles(user); err != nil {
-		logger.Error("刷新token失败：加载用户角色错误",
-			logger.String("username", user.Username),
-			logger.Int64("user_id", int64(user.ID)),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("加载用户角色失败").WithCause(err)
-	}
-
 	// 生成新的JWT token
-	roles := user.GetRoleCodes()
-	token, err := utils.GenerateAccessTokenWithRoles(int64(user.ID), user.Username, roles)
+	token, err := utils.GenerateAccessToken(int64(user.ID), user.Username)
 	if err != nil {
 		logger.Error("刷新token失败：生成新token错误",
 			logger.String("username", user.Username),
@@ -379,7 +305,6 @@ func (s *authService) RefreshToken(refreshToken string) (*models.LoginResponse, 
 	logger.Info("token刷新成功",
 		logger.String("username", user.Username),
 		logger.Int64("user_id", int64(user.ID)),
-		logger.Strings("roles", roles),
 	)
 
 	return response, nil
@@ -408,390 +333,6 @@ func (s *authService) Logout(token string) error {
 	)
 
 	return nil
-}
-
-// RevokeRole 撤销用户角色
-func (s *authService) RevokeRole(currentUserID, targetUserID int64, roles []string) error {
-	// 验证参数
-	if len(roles) == 0 {
-		return errors.NewValidationError("角色列表不能为空")
-	}
-
-	// 获取当前用户信息
-	currentUser, err := s.userRepo.GetByID(int(currentUserID))
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.ErrInvalidCredentials
-		}
-		logger.Error("撤销角色失败：获取当前用户信息错误",
-			logger.Int64("current_user_id", currentUserID),
-			logger.Err(err),
-		)
-		return errors.NewInternalServerError("获取当前用户信息失败").WithCause(err)
-	}
-
-	// 检查当前用户是否有管理员权限
-	if !currentUser.HasRole("admin") {
-		logger.Warn("撤销角色失败：当前用户没有管理员权限",
-			logger.Int64("current_user_id", currentUserID),
-			logger.String("username", currentUser.Username),
-			logger.Int64("target_user_id", targetUserID),
-		)
-		return errors.NewForbiddenError("没有权限撤销角色")
-	}
-
-	// 获取目标用户信息
-	targetUser, err := s.userRepo.GetByID(int(targetUserID))
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.NewNotFoundError("目标用户不存在")
-		}
-		logger.Error("撤销角色失败：获取目标用户信息错误",
-			logger.Int64("target_user_id", targetUserID),
-			logger.Err(err),
-		)
-		return errors.NewInternalServerError("获取目标用户信息失败").WithCause(err)
-	}
-
-	// 开始事务
-	tx := s.userRepo.BeginTransaction()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 撤销指定角色
-	for _, roleCode := range roles {
-		// 获取角色信息
-		role, err := s.userRepo.GetRoleByCode(roleCode)
-		if err != nil {
-			tx.Rollback()
-			logger.Error("撤销角色失败：获取角色信息错误",
-				logger.Int64("target_user_id", targetUserID),
-				logger.String("role_code", roleCode),
-				logger.Err(err),
-			)
-			return errors.NewNotFoundError("角色不存在: " + roleCode).WithCause(err)
-		}
-
-		// 删除用户角色关联
-		if err := s.userRepo.DeleteUserRoleWithTx(tx, int(targetUser.ID), int(role.ID)); err != nil {
-			tx.Rollback()
-			logger.Error("撤销角色失败：删除用户角色关联错误",
-				logger.Int64("target_user_id", targetUserID),
-				logger.String("role_code", roleCode),
-				logger.Err(err),
-			)
-			return errors.NewInternalServerError("撤销角色失败").WithCause(err)
-		}
-	}
-
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("撤销角色失败：提交事务错误",
-			logger.Int64("target_user_id", targetUserID),
-			logger.Err(err),
-		)
-		return errors.NewInternalServerError("撤销角色失败").WithCause(err)
-	}
-
-	logger.Info("撤销角色成功",
-		logger.Int64("current_user_id", currentUserID),
-		logger.String("current_username", currentUser.Username),
-		logger.Int64("target_user_id", targetUserID),
-		logger.String("target_username", targetUser.Username),
-		logger.Strings("roles", roles),
-	)
-
-	return nil
-}
-
-// GetUserRoles 获取用户角色
-func (s *authService) GetUserRoles(userID int64) ([]models.Role, error) {
-	// 获取用户信息
-	user, err := s.userRepo.GetByID(int(userID))
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.NewNotFoundError("用户不存在")
-		}
-		logger.Error("获取用户角色失败：获取用户信息错误",
-			logger.Int64("user_id", userID),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("获取用户信息失败").WithCause(err)
-	}
-
-	// 获取用户角色
-	roles, err := s.userRepo.GetUserRoles(int(user.ID))
-	if err != nil {
-		logger.Error("获取用户角色失败",
-			logger.Int64("user_id", userID),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("获取用户角色失败").WithCause(err)
-	}
-
-	return roles, nil
-}
-
-// GetAllRoles 获取所有角色
-func (s *authService) GetAllRoles() ([]models.Role, error) {
-	roles, err := s.userRepo.GetRoles()
-	if err != nil {
-		logger.Error("获取所有角色失败",
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("获取所有角色失败").WithCause(err)
-	}
-
-	return roles, nil
-}
-
-// CreateRole 创建角色
-func (s *authService) CreateRole(currentUserID int64, req models.CreateRoleRequest) (*models.Role, error) {
-	// 获取当前用户信息
-	currentUser, err := s.userRepo.GetByID(int(currentUserID))
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrInvalidCredentials
-		}
-		logger.Error("创建角色失败：获取当前用户信息错误",
-			logger.Int64("current_user_id", currentUserID),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("获取当前用户信息失败").WithCause(err)
-	}
-
-	// 检查当前用户是否有管理员权限
-	if !currentUser.HasRole("admin") {
-		logger.Warn("创建角色失败：当前用户没有管理员权限",
-			logger.Int64("current_user_id", currentUserID),
-			logger.String("username", currentUser.Username),
-		)
-		return nil, errors.NewForbiddenError("没有权限创建角色")
-	}
-
-	// 检查角色代码是否已存在
-	existingRole, err := s.userRepo.GetRoleByCode(req.Code)
-	if err == nil && existingRole != nil {
-		return nil, errors.NewValidationError("角色代码已存在")
-	}
-
-	// 开始事务
-	tx := s.userRepo.BeginTransaction()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 创建角色
-	role := &models.Role{
-		Name:        req.Name,
-		Code:        req.Code,
-		Description: req.Description,
-	}
-	if err := s.userRepo.CreateRoleWithTx(tx, role); err != nil {
-		tx.Rollback()
-		logger.Error("创建角色失败",
-			logger.String("role_name", req.Name),
-			logger.String("role_code", req.Code),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("创建角色失败").WithCause(err)
-	}
-
-	// 分配权限
-	for _, permissionCode := range req.Permissions {
-		// 获取权限信息
-		permission, err := s.userRepo.GetPermissionByCode(permissionCode)
-		if err != nil {
-			tx.Rollback()
-			logger.Error("创建角色失败：获取权限信息错误",
-				logger.String("role_code", req.Code),
-				logger.String("permission_code", permissionCode),
-				logger.Err(err),
-			)
-			return nil, errors.NewNotFoundError("权限不存在: " + permissionCode).WithCause(err)
-		}
-
-		// 创建角色权限关联
-		rolePermission := &models.RolePermission{
-			RoleID:       role.ID,
-			PermissionID: permission.ID,
-		}
-		if err := s.userRepo.CreateRolePermissionWithTx(tx, rolePermission); err != nil {
-			tx.Rollback()
-			logger.Error("创建角色失败：创建角色权限关联错误",
-				logger.String("role_code", req.Code),
-				logger.String("permission_code", permissionCode),
-				logger.Err(err),
-			)
-			return nil, errors.NewInternalServerError("创建角色失败").WithCause(err)
-		}
-	}
-
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("创建角色失败：提交事务错误",
-			logger.String("role_code", req.Code),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("创建角色失败").WithCause(err)
-	}
-
-	// 重新加载角色信息
-	role, err = s.userRepo.GetRoleByCode(req.Code)
-	if err != nil {
-		logger.Error("创建角色失败：重新加载角色信息错误",
-			logger.String("role_code", req.Code),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("创建角色失败").WithCause(err)
-	}
-
-	logger.Info("创建角色成功",
-		logger.Int64("current_user_id", currentUserID),
-		logger.String("current_username", currentUser.Username),
-		logger.String("role_name", req.Name),
-		logger.String("role_code", req.Code),
-	)
-
-	return role, nil
-}
-
-// UpdateRole 更新角色
-func (s *authService) UpdateRole(currentUserID int64, roleID int, req models.UpdateRoleRequest) (*models.Role, error) {
-	// 获取当前用户信息
-	currentUser, err := s.userRepo.GetByID(int(currentUserID))
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrInvalidCredentials
-		}
-		logger.Error("更新角色失败：获取当前用户信息错误",
-			logger.Int64("current_user_id", currentUserID),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("获取当前用户信息失败").WithCause(err)
-	}
-
-	// 检查当前用户是否有管理员权限
-	if !currentUser.HasRole("admin") {
-		logger.Warn("更新角色失败：当前用户没有管理员权限",
-			logger.Int64("current_user_id", currentUserID),
-			logger.String("username", currentUser.Username),
-		)
-		return nil, errors.NewForbiddenError("没有权限更新角色")
-	}
-
-	// 获取角色信息
-	role, err := s.userRepo.GetRoleByID(roleID)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.NewNotFoundError("角色不存在")
-		}
-		logger.Error("更新角色失败：获取角色信息错误",
-			logger.Int("role_id", roleID),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("获取角色信息失败").WithCause(err)
-	}
-
-	// 开始事务
-	tx := s.userRepo.BeginTransaction()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 更新角色信息
-	if req.Name != nil {
-		role.Name = *req.Name
-	}
-	if req.Description != nil {
-		role.Description = *req.Description
-	}
-	if err := s.userRepo.UpdateRoleWithTx(tx, role); err != nil {
-		tx.Rollback()
-		logger.Error("更新角色失败",
-			logger.Int("role_id", roleID),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("更新角色失败").WithCause(err)
-	}
-
-	// 如果提供了权限列表，则更新权限
-	if len(req.Permissions) > 0 {
-		// 清除现有权限
-		if err := s.userRepo.ClearRolePermissionsWithTx(tx, roleID); err != nil {
-			tx.Rollback()
-			logger.Error("更新角色失败：清除角色现有权限错误",
-				logger.Int("role_id", roleID),
-				logger.Err(err),
-			)
-			return nil, errors.NewInternalServerError("更新角色失败").WithCause(err)
-		}
-
-		// 分配新权限
-		for _, permissionCode := range req.Permissions {
-			// 获取权限信息
-			permission, err := s.userRepo.GetPermissionByCode(permissionCode)
-			if err != nil {
-				tx.Rollback()
-				logger.Error("更新角色失败：获取权限信息错误",
-					logger.Int("role_id", roleID),
-					logger.String("permission_code", permissionCode),
-					logger.Err(err),
-				)
-				return nil, errors.NewNotFoundError("权限不存在: " + permissionCode).WithCause(err)
-			}
-
-			// 创建角色权限关联
-			rolePermission := &models.RolePermission{
-				RoleID:       role.ID,
-				PermissionID: permission.ID,
-			}
-			if err := s.userRepo.CreateRolePermissionWithTx(tx, rolePermission); err != nil {
-				tx.Rollback()
-				logger.Error("更新角色失败：创建角色权限关联错误",
-					logger.Int("role_id", roleID),
-					logger.String("permission_code", permissionCode),
-					logger.Err(err),
-				)
-				return nil, errors.NewInternalServerError("更新角色失败").WithCause(err)
-			}
-		}
-	}
-
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("更新角色失败：提交事务错误",
-			logger.Int("role_id", roleID),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("更新角色失败").WithCause(err)
-	}
-
-	// 重新加载角色信息
-	role, err = s.userRepo.GetRoleByID(roleID)
-	if err != nil {
-		logger.Error("更新角色失败：重新加载角色信息错误",
-			logger.Int("role_id", roleID),
-			logger.Err(err),
-		)
-		return nil, errors.NewInternalServerError("更新角色失败").WithCause(err)
-	}
-
-	logger.Info("更新角色成功",
-		logger.Int64("current_user_id", currentUserID),
-		logger.String("current_username", currentUser.Username),
-		logger.Int("role_id", roleID),
-		logger.String("role_name", role.Name),
-	)
-
-	return role, nil
 }
 
 // hashPassword 密码哈希 - 使用bcrypt替代MD5
@@ -830,113 +371,3 @@ func (s *authService) verifyPassword(password, hashedPassword string) bool {
 	return false
 }
 
-// AssignRole 分配角色给用户
-func (s *authService) AssignRole(currentUserID, targetUserID int64, roles []string) error {
-	// 验证参数
-	if len(roles) == 0 {
-		return errors.NewValidationError("角色列表不能为空")
-	}
-
-	// 获取当前用户信息
-	currentUser, err := s.userRepo.GetByID(int(currentUserID))
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.ErrInvalidCredentials
-		}
-		logger.Error("分配角色失败：获取当前用户信息错误",
-			logger.Int64("current_user_id", currentUserID),
-			logger.Err(err),
-		)
-		return errors.NewInternalServerError("获取当前用户信息失败").WithCause(err)
-	}
-
-	// 检查当前用户是否有管理员权限
-	if !currentUser.HasRole("admin") {
-		logger.Warn("分配角色失败：当前用户没有管理员权限",
-			logger.Int64("current_user_id", currentUserID),
-			logger.String("username", currentUser.Username),
-			logger.Int64("target_user_id", targetUserID),
-		)
-		return errors.NewForbiddenError("没有权限分配角色")
-	}
-
-	// 获取目标用户信息
-	targetUser, err := s.userRepo.GetByID(int(targetUserID))
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.NewNotFoundError("目标用户不存在")
-		}
-		logger.Error("分配角色失败：获取目标用户信息错误",
-			logger.Int64("target_user_id", targetUserID),
-			logger.Err(err),
-		)
-		return errors.NewInternalServerError("获取目标用户信息失败").WithCause(err)
-	}
-
-	// 开始事务
-	tx := s.userRepo.BeginTransaction()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 清除用户现有角色
-	if err := s.userRepo.ClearUserRolesWithTx(tx, int(targetUser.ID)); err != nil {
-		tx.Rollback()
-		logger.Error("分配角色失败：清除用户现有角色错误",
-			logger.Int64("target_user_id", targetUserID),
-			logger.Err(err),
-		)
-		return errors.NewInternalServerError("清除用户现有角色失败").WithCause(err)
-	}
-
-	// 分配新角色
-	for _, roleCode := range roles {
-		// 获取角色信息
-		role, err := s.userRepo.GetRoleByCode(roleCode)
-		if err != nil {
-			tx.Rollback()
-			logger.Error("分配角色失败：获取角色信息错误",
-				logger.Int64("target_user_id", targetUserID),
-				logger.String("role_code", roleCode),
-				logger.Err(err),
-			)
-			return errors.NewNotFoundError("角色不存在: " + roleCode).WithCause(err)
-		}
-
-		// 创建用户角色关联
-		userRole := &models.UserRole{
-			UserID: targetUser.ID,
-			RoleID: role.ID,
-		}
-		if err := s.userRepo.CreateUserRoleWithTx(tx, userRole); err != nil {
-			tx.Rollback()
-			logger.Error("分配角色失败：创建用户角色关联错误",
-				logger.Int64("target_user_id", targetUserID),
-				logger.String("role_code", roleCode),
-				logger.Err(err),
-			)
-			return errors.NewInternalServerError("分配角色失败").WithCause(err)
-		}
-	}
-
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("分配角色失败：提交事务错误",
-			logger.Int64("target_user_id", targetUserID),
-			logger.Err(err),
-		)
-		return errors.NewInternalServerError("分配角色失败").WithCause(err)
-	}
-
-	logger.Info("分配角色成功",
-		logger.Int64("current_user_id", currentUserID),
-		logger.String("current_username", currentUser.Username),
-		logger.Int64("target_user_id", targetUserID),
-		logger.String("target_username", targetUser.Username),
-		logger.Strings("roles", roles),
-	)
-
-	return nil
-}

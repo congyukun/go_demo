@@ -17,10 +17,8 @@ type JWTConfig struct {
 
 // Claims JWT声明
 type Claims struct {
-	UserID   int64    `json:"user_id"`
-	Username string   `json:"username"`
-	Role     string   `json:"role"`
-	Roles    []string `json:"roles"`
+	UserID   int64  `json:"user_id"`
+	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
@@ -46,41 +44,11 @@ func NewJWTManager(config JWTConfig) *JWTManager {
 }
 
 // GenerateAccessToken 生成访问token
-func (j *JWTManager) GenerateAccessToken(userID int64, username, role string) (string, error) {
+func (j *JWTManager) GenerateAccessToken(userID int64, username string) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		UserID:   userID,
 		Username: username,
-		Role:     role,
-		Roles:    []string{role}, // 向后兼容，将单个角色转换为数组
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    j.config.Issuer,
-			Subject:   username,
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(j.config.AccessExpire) * time.Second)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(j.config.SecretKey))
-}
-
-// GenerateAccessTokenWithRoles 生成包含多个角色的访问token
-func (j *JWTManager) GenerateAccessTokenWithRoles(userID int64, username string, roles []string) (string, error) {
-	now := time.Now()
-	
-	// 确定主角色（第一个角色或默认为user）
-	mainRole := "user"
-	if len(roles) > 0 {
-		mainRole = roles[0]
-	}
-	
-	claims := Claims{
-		UserID:   userID,
-		Username: username,
-		Role:     mainRole, // 主角色，用于向后兼容
-		Roles:    roles,    // 所有角色
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    j.config.Issuer,
 			Subject:   username,
@@ -100,8 +68,6 @@ func (j *JWTManager) GenerateRefreshToken(userID int64) (string, error) {
 	claims := Claims{
 		UserID:   userID,
 		Username: "",
-		Role:     "", // 刷新token不包含角色信息
-		Roles:    []string{},
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    j.config.Issuer,
 			Subject:   "refresh",
@@ -116,23 +82,8 @@ func (j *JWTManager) GenerateRefreshToken(userID int64) (string, error) {
 }
 
 // GenerateTokenPair 生成token对（访问token和刷新token）
-func (j *JWTManager) GenerateTokenPair(userID int64, username, role string) (accessToken, refreshToken string, err error) {
-	accessToken, err = j.GenerateAccessToken(userID, username, role)
-	if err != nil {
-		return "", "", err
-	}
-
-	refreshToken, err = j.GenerateRefreshToken(userID)
-	if err != nil {
-		return "", "", err
-	}
-
-	return accessToken, refreshToken, nil
-}
-
-// GenerateTokenPairWithRoles 生成包含多个角色的token对
-func (j *JWTManager) GenerateTokenPairWithRoles(userID int64, username string, roles []string) (accessToken, refreshToken string, err error) {
-	accessToken, err = j.GenerateAccessTokenWithRoles(userID, username, roles)
+func (j *JWTManager) GenerateTokenPair(userID int64, username string) (accessToken, refreshToken string, err error) {
+	accessToken, err = j.GenerateAccessToken(userID, username)
 	if err != nil {
 		return "", "", err
 	}
@@ -201,28 +152,6 @@ func (j *JWTManager) ValidateRefreshToken(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
-// RefreshAccessToken 使用刷新token生成新的访问token
-func (j *JWTManager) RefreshAccessToken(refreshToken string, role string) (string, error) {
-	claims, err := j.ValidateRefreshToken(refreshToken)
-	if err != nil {
-		return "", err
-	}
-
-	// 生成新的访问token
-	return j.GenerateAccessToken(claims.UserID, "", role)
-}
-
-// RefreshAccessTokenWithRoles 使用刷新token生成包含多个角色的新的访问token
-func (j *JWTManager) RefreshAccessTokenWithRoles(refreshToken string, roles []string) (string, error) {
-	claims, err := j.ValidateRefreshToken(refreshToken)
-	if err != nil {
-		return "", err
-	}
-
-	// 生成新的访问token
-	return j.GenerateAccessTokenWithRoles(claims.UserID, "", roles)
-}
-
 // GetUserIDFromToken 从token中获取用户ID
 func (j *JWTManager) GetUserIDFromToken(tokenString string) (int64, error) {
 	claims, err := j.ValidateToken(tokenString)
@@ -239,92 +168,6 @@ func (j *JWTManager) GetUsernameFromToken(tokenString string) (string, error) {
 		return "", err
 	}
 	return claims.Username, nil
-}
-
-// GetRoleFromToken 从token中获取用户角色
-func (j *JWTManager) GetRoleFromToken(tokenString string) (string, error) {
-	claims, err := j.ValidateToken(tokenString)
-	if err != nil {
-		return "", err
-	}
-	return claims.Role, nil
-}
-
-// GetRolesFromToken 从token中获取用户所有角色
-func (j *JWTManager) GetRolesFromToken(tokenString string) ([]string, error) {
-	claims, err := j.ValidateToken(tokenString)
-	if err != nil {
-		return nil, err
-	}
-	
-	// 如果Roles为空，则使用Role字段向后兼容
-	if len(claims.Roles) == 0 && claims.Role != "" {
-		return []string{claims.Role}, nil
-	}
-	
-	return claims.Roles, nil
-}
-
-// HasRole 检查token是否包含指定角色
-func (j *JWTManager) HasRole(tokenString, role string) bool {
-	roles, err := j.GetRolesFromToken(tokenString)
-	if err != nil {
-		return false
-	}
-	
-	for _, r := range roles {
-		if r == role {
-			return true
-		}
-	}
-	
-	return false
-}
-
-// HasAnyRole 检查token是否包含任一指定角色
-func (j *JWTManager) HasAnyRole(tokenString string, roles ...string) bool {
-	userRoles, err := j.GetRolesFromToken(tokenString)
-	if err != nil {
-		return false
-	}
-	
-	// 创建用户角色映射
-	userRoleMap := make(map[string]bool)
-	for _, r := range userRoles {
-		userRoleMap[r] = true
-	}
-	
-	// 检查是否有任一匹配的角色
-	for _, role := range roles {
-		if userRoleMap[role] {
-			return true
-		}
-	}
-	
-	return false
-}
-
-// HasAllRoles 检查token是否包含所有指定角色
-func (j *JWTManager) HasAllRoles(tokenString string, roles ...string) bool {
-	userRoles, err := j.GetRolesFromToken(tokenString)
-	if err != nil {
-		return false
-	}
-	
-	// 创建用户角色映射
-	userRoleMap := make(map[string]bool)
-	for _, r := range userRoles {
-		userRoleMap[r] = true
-	}
-	
-	// 检查是否所有角色都匹配
-	for _, role := range roles {
-		if !userRoleMap[role] {
-			return false
-		}
-	}
-	
-	return true
 }
 
 // IsTokenExpired 检查token是否过期
@@ -386,19 +229,11 @@ func GetJWTManager() *JWTManager {
 // 以下是全局便捷函数，使用默认的JWT管理器
 
 // GenerateAccessToken 生成访问token
-func GenerateAccessToken(userID int64, username, role string) (string, error) {
+func GenerateAccessToken(userID int64, username string) (string, error) {
 	if jwtManager == nil {
 		return "", errors.New("JWT管理器未初始化")
 	}
-	return jwtManager.GenerateAccessToken(userID, username, role)
-}
-
-// GenerateAccessTokenWithRoles 生成包含多个角色的访问token
-func GenerateAccessTokenWithRoles(userID int64, username string, roles []string) (string, error) {
-	if jwtManager == nil {
-		return "", errors.New("JWT管理器未初始化")
-	}
-	return jwtManager.GenerateAccessTokenWithRoles(userID, username, roles)
+	return jwtManager.GenerateAccessToken(userID, username)
 }
 
 // GenerateRefreshToken 生成刷新token
@@ -423,36 +258,4 @@ func ValidateRefreshToken(tokenString string) (*Claims, error) {
 		return nil, errors.New("JWT管理器未初始化")
 	}
 	return jwtManager.ValidateRefreshToken(tokenString)
-}
-
-// GetRolesFromToken 从token中获取用户所有角色
-func GetRolesFromToken(tokenString string) ([]string, error) {
-	if jwtManager == nil {
-		return nil, errors.New("JWT管理器未初始化")
-	}
-	return jwtManager.GetRolesFromToken(tokenString)
-}
-
-// HasRole 检查token是否包含指定角色
-func HasRole(tokenString, role string) bool {
-	if jwtManager == nil {
-		return false
-	}
-	return jwtManager.HasRole(tokenString, role)
-}
-
-// HasAnyRole 检查token是否包含任一指定角色
-func HasAnyRole(tokenString string, roles ...string) bool {
-	if jwtManager == nil {
-		return false
-	}
-	return jwtManager.HasAnyRole(tokenString, roles...)
-}
-
-// HasAllRoles 检查token是否包含所有指定角色
-func HasAllRoles(tokenString string, roles ...string) bool {
-	if jwtManager == nil {
-		return false
-	}
-	return jwtManager.HasAllRoles(tokenString, roles...)
 }
