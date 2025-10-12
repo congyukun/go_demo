@@ -84,7 +84,7 @@ dev:
 	@if command -v air > /dev/null; then \
 		air; \
 	else \
-		echo "请先安装 air: go install github.com/cosmtrek/air@latest"; \
+		echo "请先安装 air: go install github.com/air-verse/air@latest"; \
 		$(GOCMD) run $(MAIN_PATH); \
 	fi
 

@@ -2,11 +2,12 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/spf13/viper"
+
 	"go_demo/internal/utils"
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
-
-	"github.com/spf13/viper"
 )
 
 // Config 应用配置结构
@@ -46,10 +47,6 @@ func Load(configPath string) (*Config, error) {
 	viper.SetConfigFile(configPath)
 	viper.SetConfigType("yaml")
 
-	// 设置环境变量前缀
-	viper.SetEnvPrefix("GO_DEMO")
-	viper.AutomaticEnv()
-
 	// 设置默认值
 	setDefaults()
 
@@ -57,6 +54,11 @@ func Load(configPath string) (*Config, error) {
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
+	
+	// 设置环境变量前缀，在读取配置文件之后，确保环境变量优先级更高
+	viper.SetEnvPrefix("GO_DEMO")
+	viper.AutomaticEnv()
+
 	// 解析配置
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {

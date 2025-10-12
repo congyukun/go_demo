@@ -225,13 +225,22 @@ func (r *RedisCache) SRemove(key string, members ...interface{}) error {
 	return r.client.SRem(r.ctx, key, members...).Err()
 }
 
-// ZAdd 有序集合添加成员
-func (r *RedisCache) ZAdd(key string, score float64, member interface{}) error {
-	z := redis.Z{
-		Score:  score,
-		Member: member,
+// ZAdd 添加有序集合成员
+func (r *RedisCache) ZAdd(key string, members ...*ZMember) error {
+	if len(members) == 0 {
+		return errors.New("至少需要一个成员")
 	}
-	return r.client.ZAdd(r.ctx, key, &z).Err()
+	
+	// 将ZMember转换为Redis ZAdd所需的参数
+	zs := make([]*redis.Z, 0, len(members))
+	for _, member := range members {
+		zs = append(zs, &redis.Z{
+			Score:  member.Score,
+			Member: member.Member,
+		})
+	}
+	
+	return r.client.ZAdd(r.ctx, key, zs...).Err()
 }
 
 // ZRange 获取有序集合范围
@@ -240,8 +249,46 @@ func (r *RedisCache) ZRange(key string, start, stop int64) ([]string, error) {
 }
 
 // ZRangeWithScores 获取有序集合范围（包含分数）
-func (r *RedisCache) ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
-	return r.client.ZRangeWithScores(r.ctx, key, start, stop).Result()
+func (r *RedisCache) ZRangeWithScores(key string, start, stop int64) ([]*ZMember, error) {
+	redisZs, err := r.client.ZRangeWithScores(r.ctx, key, start, stop).Result()
+	if err != nil {
+		return nil, err
+	}
+	
+	// 转换为ZMember
+	zMembers := make([]*ZMember, len(redisZs))
+	for i, z := range redisZs {
+		// 将interface{}转换为string
+		var member string
+		if m, ok := z.Member.(string); ok {
+			member = m
+		} else {
+			// 尝试将其他类型转换为string
+			member = fmt.Sprintf("%v", z.Member)
+		}
+		
+		zMembers[i] = &ZMember{
+			Score:  z.Score,
+			Member: member,
+		}
+	}
+	
+	return zMembers, nil
+}
+
+// ZRem 删除有序集合成员
+func (r *RedisCache) ZRem(key string, members ...string) error {
+	if len(members) == 0 {
+		return errors.New("至少需要一个成员")
+	}
+	
+	// 将字符串转换为interface{}
+	interfaces := make([]interface{}, len(members))
+	for i, member := range members {
+		interfaces[i] = member
+	}
+	
+	return r.client.ZRem(r.ctx, key, interfaces...).Err()
 }
 
 // FlushDB 清空当前数据库
