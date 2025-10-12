@@ -2,11 +2,13 @@ package container
 
 import (
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 
 	"go_demo/internal/config"
 	"go_demo/internal/handler"
+	"go_demo/internal/middleware"
 	"go_demo/internal/repository"
 	"go_demo/internal/router"
 	"go_demo/internal/service"
@@ -20,15 +22,17 @@ import (
 // Container 依赖注入容器
 // 负责管理应用程序所有组件的生命周期和依赖关系
 type Container struct {
-	Config      *config.Config
-	DB          *gorm.DB
-	Cache       cache.CacheInterface
-	UserRepo    repository.UserRepository
-	AuthService service.AuthService
-	UserService service.UserService
-	AuthHandler *handler.AuthHandler
-	UserHandler *handler.UserHandler
-	Router      *router.Router
+	Config         *config.Config
+	DB             *gorm.DB
+	Cache          cache.CacheInterface
+	UserRepo       repository.UserRepository
+	AuthService    service.AuthService
+	UserService    service.UserService
+	AuthHandler    *handler.AuthHandler
+	UserHandler    *handler.UserHandler
+	Router         *router.Router
+	RateLimiterFactory *middleware.RateLimiterFactory
+	CircuitBreakerFactory *middleware.CircuitBreakerFactory
 }
 
 // NewContainer 创建依赖注入容器
@@ -138,15 +142,45 @@ func (c *Container) initDataComponents() error {
 func (c *Container) initServiceComponents() {
 	c.AuthService = service.NewAuthService(c.UserRepo)
 	c.UserService = service.NewUserService(c.UserRepo)
+	
+	// 初始化限流器工厂
+	globalRateLimiterConfig := middleware.DefaultRateLimiterConfig()
+	globalRateLimiterConfig.MaxRequests = c.Config.RateLimiter.GlobalLimit
+	globalRateLimiterConfig.Window = time.Duration(c.Config.RateLimiter.Window) * time.Second
+	globalRateLimiterConfig.Algorithm = c.Config.RateLimiter.Algorithm
+	
+	userRateLimiterConfig := middleware.DefaultRateLimiterConfig()
+	userRateLimiterConfig.MaxRequests = c.Config.RateLimiter.UserLimit
+	userRateLimiterConfig.Window = time.Duration(c.Config.RateLimiter.Window) * time.Second
+	userRateLimiterConfig.Algorithm = c.Config.RateLimiter.Algorithm
+	
+	c.RateLimiterFactory = middleware.NewRateLimiterFactory(globalRateLimiterConfig, userRateLimiterConfig, c.Cache)
+	
+	// 初始化熔断器工厂
+	circuitBreakerConfig := middleware.DefaultCircuitBreakerConfig("global")
+	circuitBreakerConfig.MaxRequests = uint32(c.Config.CircuitBreaker.MaxRequests)
+	circuitBreakerConfig.MaxHalfOpenRequests = uint32(c.Config.CircuitBreaker.HalfOpenMaxRequests)
+	circuitBreakerConfig.ErrorThreshold = c.Config.CircuitBreaker.ErrorThreshold
+	circuitBreakerConfig.Timeout = time.Duration(c.Config.CircuitBreaker.Timeout) * time.Second
+	circuitBreakerConfig.Enabled = c.Config.CircuitBreaker.Enabled
+	
+	c.CircuitBreakerFactory = middleware.NewCircuitBreakerFactory(circuitBreakerConfig)
 }
 
 // initHandlerComponents 初始化表现层组件
 func (c *Container) initHandlerComponents() {
 	c.AuthHandler = handler.NewAuthHandler(c.AuthService, c.UserService)
 	c.UserHandler = handler.NewUserHandler(c.UserService)
-
-	// 初始化路由
-	c.Router = router.NewRouter(c.AuthHandler, c.UserHandler)
+	
+	// 使用工厂模式创建中间件
+	c.Router = router.NewRouterWithMiddleware(
+		c.AuthHandler,
+		c.UserHandler,
+		c.RateLimiterFactory,
+		c.CircuitBreakerFactory,
+	)
+	
+	c.Router.Setup()
 }
 
 // initRepositories 初始化仓储层

@@ -673,3 +673,86 @@ func (m *MemoryCache) Close() error {
 	close(m.stopChan)
 	return nil
 }
+
+// SetExpire 设置过期时间（兼容接口）
+func (m *MemoryCache) SetExpire(ctx interface{}, key string, expiration time.Duration) error {
+	return m.Expire(key, expiration)
+}
+
+// ZCard 获取有序集合大小
+func (m *MemoryCache) ZCard(key string) (int64, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	item, exists := m.data[key]
+	if !exists {
+		return 0, nil
+	}
+	
+	zset, ok := item.value.([]*ZMember)
+	if !ok {
+		return 0, errors.New("值不是有序集合")
+	}
+	
+	return int64(len(zset)), nil
+}
+
+// ZRemRangeByScore 按分数范围删除有序集合成员
+func (m *MemoryCache) ZRemRangeByScore(ctx interface{}, key, min, max string) (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	item, exists := m.data[key]
+	if !exists {
+		return 0, errors.New("有序集合不存在")
+	}
+	
+	zset, ok := item.value.([]*ZMember)
+	if !ok {
+		return 0, errors.New("值不是有序集合")
+	}
+	
+	// 解析分数范围
+	minScore, err := parseFloat(min)
+	if err != nil {
+		return 0, fmt.Errorf("无效的最小分数: %w", err)
+	}
+	
+	maxScore, err := parseFloat(max)
+	if err != nil {
+		return 0, fmt.Errorf("无效的最大分数: %w", err)
+	}
+	
+	// 过滤出不在范围内的成员
+	newZset := make([]*ZMember, 0)
+	removed := 0
+	
+	for _, member := range zset {
+		if member.Score < minScore || member.Score > maxScore {
+			newZset = append(newZset, member)
+		} else {
+			removed++
+		}
+	}
+	
+	item.value = newZset
+	return int64(removed), nil
+}
+
+// parseFloat 解析浮点数，支持"-inf"和"+inf"
+func parseFloat(s string) (float64, error) {
+	switch s {
+	case "-inf":
+		return -1.7976931348623157e+308, nil // 最小浮点数
+	case "+inf", "inf":
+		return 1.7976931348623157e+308, nil // 最大浮点数
+	default:
+		// 尝试解析为浮点数
+		var f float64
+		_, err := fmt.Sscanf(s, "%f", &f)
+		if err != nil {
+			return 0, err
+		}
+		return f, nil
+	}
+}

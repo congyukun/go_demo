@@ -45,6 +45,9 @@ type CacheInterface interface {
 	ZRange(key string, start, stop int64) ([]string, error)
 	ZRangeWithScores(key string, start, stop int64) ([]*ZMember, error)
 	ZRem(key string, members ...string) error
+	ZRemRangeByScore(ctx interface{}, key, min, max string) (int64, error)
+	ZCard(key string) (int64, error)
+	SetExpire(ctx interface{}, key string, expiration time.Duration) error
 	
 	// 管理操作
 	FlushDB() error

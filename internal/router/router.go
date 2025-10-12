@@ -1,15 +1,17 @@
 package router
 
 import (
-	"go_demo/docs"
-	"go_demo/internal/handler"
-	"go_demo/internal/middleware"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+
+	"go_demo/docs"
+	"go_demo/internal/handler"
+	"go_demo/internal/middleware"
+	"go_demo/internal/utils"
 )
 
 // Router 路由管理器
@@ -17,6 +19,13 @@ type Router struct {
 	engine      *gin.Engine
 	authHandler *handler.AuthHandler
 	userHandler *handler.UserHandler
+	rateLimiter interface {
+		GlobalMiddleware() gin.HandlerFunc
+		UserMiddleware() gin.HandlerFunc
+	}
+	circuitBreaker interface {
+		Middleware() gin.HandlerFunc
+	}
 }
 
 // NewRouter 创建新的路由管理器
@@ -24,6 +33,26 @@ func NewRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandle
 	return &Router{
 		authHandler: authHandler,
 		userHandler: userHandler,
+	}
+}
+
+// NewRouterWithMiddleware 使用中间件创建新的路由管理器
+func NewRouterWithMiddleware(
+	authHandler *handler.AuthHandler,
+	userHandler *handler.UserHandler,
+	rateLimiter interface {
+		GlobalMiddleware() gin.HandlerFunc
+		UserMiddleware() gin.HandlerFunc
+	},
+	circuitBreaker interface {
+		Middleware() gin.HandlerFunc
+	},
+) *Router {
+	return &Router{
+		authHandler:    authHandler,
+		userHandler:    userHandler,
+		rateLimiter:    rateLimiter,
+		circuitBreaker: circuitBreaker,
 	}
 }
 
@@ -55,6 +84,17 @@ func (r *Router) setupMiddleware() {
 		middleware.Trace(),      // 链路追踪
 		middleware.RequestLog(), // 请求日志记录
 	)
+
+	// 添加限流和熔断中间件
+	// 全局限流中间件
+	if r.rateLimiter != nil {
+		r.engine.Use(r.rateLimiter.GlobalMiddleware())
+	}
+
+	// 全局熔断中间件
+	if r.circuitBreaker != nil {
+		r.engine.Use(r.circuitBreaker.Middleware())
+	}
 }
 
 // setupRoutes 设置路由
@@ -71,12 +111,60 @@ func (r *Router) setupRoutes() {
 
 // setupHealthRoutes 设置健康检查路由
 func (r *Router) setupHealthRoutes() {
-	r.engine.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
-			"time":   time.Now().Format(time.RFC3339),
+	// 为健康检查添加IP级限流
+	if r.rateLimiter != nil {
+		// 创建IP级限流中间件
+		ipRateLimiter := func(c *gin.Context) {
+			// 创建IP级限流配置
+			config := middleware.RateLimiterConfig{
+				KeyGenerator: func(c *gin.Context) string {
+					return "ip_rate_limit:" + c.ClientIP()
+				},
+				Algorithm:   "sliding_window",
+				Window:      time.Minute,
+				MaxRequests: 200, // 每分钟200个请求
+				Distributed: true,
+				OnLimitReached: func(c *gin.Context) {
+					utils.ResponseError(c, http.StatusTooManyRequests, "请求过于频繁，请稍后再试")
+				},
+			}
+			
+			// 获取缓存实例
+			cache := r.rateLimiter.(*middleware.RateLimiterFactory).Cache
+			
+			// 设置缓存
+			config.Cache = cache
+			
+			// 检查是否超过限流
+			allowed, err := middleware.IsAllowed(c.Request.Context(), config.KeyGenerator(c), config)
+			if err != nil {
+				c.Next()
+				return
+			}
+			
+			if !allowed {
+				config.OnLimitReached(c)
+				c.Abort()
+				return
+			}
+			
+			c.Next()
+		}
+		
+		r.engine.GET("/health", ipRateLimiter, func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"status": "ok",
+				"time":   time.Now().Format(time.RFC3339),
+			})
 		})
-	})
+	} else {
+		r.engine.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"status": "ok",
+				"time":   time.Now().Format(time.RFC3339),
+			})
+		})
+	}
 }
 
 // setupAPIRoutes 设置 API 路由
@@ -95,6 +183,11 @@ func (r *Router) setupAPIRoutes() {
 func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 	auth := rg.Group("/auth")
 	{
+		// 为认证路由添加用户级限流
+		if r.rateLimiter != nil {
+			auth.Use(r.rateLimiter.UserMiddleware())
+		}
+
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
 		auth.POST("/refresh", r.authHandler.RefreshToken)
@@ -107,6 +200,12 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
 	users.Use(middleware.Auth()) // 用户相关接口需要JWT认证
+
+	// 为用户路由添加用户级限流
+	if r.rateLimiter != nil {
+		users.Use(r.rateLimiter.UserMiddleware())
+	}
+
 	{
 		// 用户管理（管理员功能）
 		users.GET("", r.userHandler.GetUsers)

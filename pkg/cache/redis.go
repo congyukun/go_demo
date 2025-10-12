@@ -291,6 +291,37 @@ func (r *RedisCache) ZRem(key string, members ...string) error {
 	return r.client.ZRem(r.ctx, key, interfaces...).Err()
 }
 
+// ZRemRangeByScore 按分数范围删除有序集合成员
+func (r *RedisCache) ZRemRangeByScore(ctx interface{}, key, min, max string) (int64, error) {
+	// 处理context参数
+	var contextVal context.Context
+	if c, ok := ctx.(context.Context); ok {
+		contextVal = c
+	} else {
+		contextVal = r.ctx
+	}
+	
+	return r.client.ZRemRangeByScore(contextVal, key, min, max).Result()
+}
+
+// ZCard 获取有序集合成员数量
+func (r *RedisCache) ZCard(key string) (int64, error) {
+	return r.client.ZCard(r.ctx, key).Result()
+}
+
+// SetExpire 设置键的过期时间
+func (r *RedisCache) SetExpire(ctx interface{}, key string, expiration time.Duration) error {
+	// 处理context参数
+	var contextVal context.Context
+	if c, ok := ctx.(context.Context); ok {
+		contextVal = c
+	} else {
+		contextVal = r.ctx
+	}
+	
+	return r.client.Expire(contextVal, key, expiration).Err()
+}
+
 // FlushDB 清空当前数据库
 func (r *RedisCache) FlushDB() error {
 	return r.client.FlushDB(r.ctx).Err()
