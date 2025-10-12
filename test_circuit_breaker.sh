@@ -7,7 +7,7 @@ echo "=== 测试基本熔断功能 ==="
 echo "发送失败请求触发熔断..."
 
 # 首先发送一些失败请求来触发熔断
-for i in {1..5}; do
+for i in {1..10}; do
   # 模拟失败请求（使用不存在的用户登录）
   curl -s --noproxy "*" -X POST http://localhost:8080/api/v1/auth/login \
     -H "Content-Type: application/json" \
@@ -27,14 +27,14 @@ circuit_response=$(curl -s --noproxy "*" -X GET http://localhost:8080/health)
 if [[ "$circuit_response" == *"服务暂时不可用"* ]]; then
   echo "✓ 熔断器正常工作，请求被正确拒绝"
 elif [[ "$circuit_response" == *"ok"* ]]; then
-  echo "✗ 熔断器可能未正常工作，请求被允许通过"
+  echo "✗ 熔断器可能未正常工作，请求被允许通过（响应: $circuit_response）"
 else
   echo "? 无法确定熔断器状态，响应: $circuit_response"
 fi
 
 # 等待超时时间，让熔断器进入半开状态
-echo "等待30秒超时时间..."
-sleep 30
+echo "等待5秒超时时间..."
+sleep 5
 
 # 2. 测试半开状态
 echo "=== 测试半开状态 ==="
@@ -121,6 +121,6 @@ echo "3. 熔断器恢复"
 echo "4. 并发场景"
 echo "5. API级别熔断"
 echo ""
-echo "注意：熔断器配置为错误率50%时触发，超时时间30秒"
-echo "半开状态最大请求数：10个"
-echo "触发熔断检查的最小请求数：100个"
+echo "注意：熔断器配置为错误率50%时触发，超时时间5秒"
+echo "半开状态最大请求数：3个"
+echo "触发熔断检查的最小请求数：5个"

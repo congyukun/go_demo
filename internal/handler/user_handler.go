@@ -1,15 +1,17 @@
 package handler
 
 import (
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+
 	"go_demo/internal/middleware"
 	"go_demo/internal/models"
 	"go_demo/internal/service"
 	"go_demo/internal/utils"
 	"go_demo/pkg/logger"
-	"net/http"
-	"strconv"
-
-	"github.com/gin-gonic/gin"
 )
 
 // UserHandler 用户处理器
@@ -22,6 +24,14 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 	}
+}
+
+// UserListResponse 用户列表响应
+type UserListResponse struct {
+	Users []models.UserResponse `json:"users"`
+	Total int64                 `json:"total"`
+	Page  int                   `json:"page"`
+	Size  int                   `json:"size"`
 }
 
 // GetUsers 获取用户列表
@@ -64,7 +74,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	}
 
 	// 构造响应
-	response := models.UserListResponse{
+	response := UserListResponse{
 		Users: make([]models.UserResponse, len(users)),
 		Total: total,
 		Page:  page,
@@ -179,7 +189,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 			logger.String("username", req.Username),
 			logger.Err(err),
 		)
-		
+
 		// 根据错误类型返回不同的HTTP状态码
 		if err.Error() == "用户名已存在" || err.Error() == "邮箱已存在" || err.Error() == "手机号已存在" {
 			utils.ResponseError(c, http.StatusConflict, err.Error())
@@ -474,4 +484,213 @@ func (h *UserHandler) GetUserStats(c *gin.Context) {
 	)
 
 	utils.ResponseSuccess(c, "获取成功", stats)
+}
+
+// GetUserRoles 获取用户角色
+// @Summary 获取用户角色
+// @Description 获取指定用户的角色列表（管理员功能）
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user_id path int true "用户ID"
+// @Success 200 {object} utils.Response{data=[]models.Role} "获取成功"
+// @Failure 400 {object} utils.Response "请求参数错误"
+// @Failure 401 {object} utils.Response "未认证"
+// @Failure 403 {object} utils.Response "权限不足"
+// @Failure 404 {object} utils.Response "用户不存在"
+// @Failure 500 {object} utils.Response "服务器内部错误"
+// @Router /api/v1/users/{user_id}/roles [get]
+func (h *UserHandler) GetUserRoles(c *gin.Context) {
+	requestID := middleware.GetTraceID(c)
+
+	// 获取用户ID参数
+	userIDStr := c.Param("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "无效的用户ID")
+		return
+	}
+
+	logger.Info("获取用户角色请求",
+		logger.String("request_id", requestID),
+		logger.Int64("user_id", userID),
+		logger.String("client_ip", c.ClientIP()),
+	)
+
+	// 调用服务层获取用户角色
+	roles, err := h.userService.GetUserRoles(userID)
+	if err != nil {
+		logger.Warn("获取用户角色失败",
+			logger.String("request_id", requestID),
+			logger.Int64("user_id", userID),
+			logger.Err(err),
+		)
+
+		// 检查是否是记录未找到错误
+		if strings.Contains(err.Error(), "record not found") || strings.Contains(err.Error(), "not found") {
+			utils.ResponseError(c, http.StatusNotFound, "用户不存在")
+		} else {
+			utils.ResponseError(c, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	logger.Info("获取用户角色成功",
+		logger.String("request_id", requestID),
+		logger.Int64("user_id", userID),
+		logger.Int("role_count", len(roles)),
+	)
+
+	utils.ResponseSuccess(c, "获取成功", roles)
+}
+
+// AssignRole 分配角色
+// @Summary 分配角色
+// @Description 为用户分配角色（管理员功能）
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user_id path int true "用户ID"
+// @Param request body models.AssignRoleRequest true "分配角色请求"
+// @Success 200 {object} utils.Response "分配成功"
+// @Failure 400 {object} utils.Response "请求参数错误"
+// @Failure 401 {object} utils.Response "未认证"
+// @Failure 403 {object} utils.Response "权限不足"
+// @Failure 404 {object} utils.Response "用户或角色不存在"
+// @Failure 409 {object} utils.Response "用户已拥有该角色"
+// @Failure 500 {object} utils.Response "服务器内部错误"
+// @Router /api/v1/users/{user_id}/roles [post]
+func (h *UserHandler) AssignRole(c *gin.Context) {
+	requestID := middleware.GetTraceID(c)
+
+	// 获取用户ID参数
+	userIDStr := c.Param("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "无效的用户ID")
+		return
+	}
+
+	// 绑定并验证请求参数
+	var req models.AssignRoleRequest
+	if !middleware.ValidateAndBind(c, &req) {
+		return
+	}
+
+	logger.Info("分配角色请求",
+		logger.String("request_id", requestID),
+		logger.Int64("user_id", userID),
+		logger.Strings("roles", req.Roles),
+		logger.String("client_ip", c.ClientIP()),
+	)
+
+	// 分配角色，暂时取第一个角色
+	roleName := ""
+	if len(req.Roles) > 0 {
+		roleName = req.Roles[0]
+	}
+	err = h.userService.AssignRole(userID, roleName)
+	if err != nil {
+		logger.Warn("分配角色失败",
+			logger.String("request_id", requestID),
+			logger.Int64("user_id", userID),
+			logger.String("role_name", roleName),
+			logger.Err(err),
+		)
+
+		// 检查错误类型
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "不存在") {
+			utils.ResponseError(c, http.StatusNotFound, "角色不存在")
+		} else if strings.Contains(err.Error(), "conflict") || strings.Contains(err.Error(), "已拥有") {
+			utils.ResponseError(c, http.StatusConflict, "用户已拥有该角色")
+		} else {
+			utils.ResponseError(c, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	logger.Info("分配角色成功",
+		logger.String("request_id", requestID),
+		logger.Int64("user_id", userID),
+		logger.String("role_name", roleName),
+	)
+
+	utils.ResponseSuccess(c, "分配成功", nil)
+}
+
+// RevokeRole 撤销角色
+// @Summary 撤销角色
+// @Description 撤销用户的角色（管理员功能）
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user_id path int true "用户ID"
+// @Param request body models.RevokeRoleRequest true "撤销角色请求"
+// @Success 200 {object} utils.Response "撤销成功"
+// @Failure 400 {object} utils.Response "请求参数错误"
+// @Failure 401 {object} utils.Response "未认证"
+// @Failure 403 {object} utils.Response "权限不足"
+// @Failure 404 {object} utils.Response "用户或角色不存在"
+// @Failure 409 {object} utils.Response "用户未拥有该角色"
+// @Failure 500 {object} utils.Response "服务器内部错误"
+// @Router /api/v1/users/{user_id}/roles/revoke [post]
+func (h *UserHandler) RevokeRole(c *gin.Context) {
+	requestID := middleware.GetTraceID(c)
+
+	// 获取用户ID参数
+	userIDStr := c.Param("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "无效的用户ID")
+		return
+	}
+
+	// 绑定并验证请求参数
+	var req models.RevokeRoleRequest
+	if !middleware.ValidateAndBind(c, &req) {
+		return
+	}
+
+	logger.Info("撤销角色请求",
+		logger.String("request_id", requestID),
+		logger.Int64("user_id", userID),
+		logger.Strings("roles", req.Roles),
+		logger.String("client_ip", c.ClientIP()),
+	)
+
+	// 撤销角色，暂时取第一个角色
+	roleName := ""
+	if len(req.Roles) > 0 {
+		roleName = req.Roles[0]
+	}
+	err = h.userService.RevokeRole(userID, roleName)
+	if err != nil {
+		logger.Warn("撤销角色失败",
+			logger.String("request_id", requestID),
+			logger.Int64("user_id", userID),
+			logger.String("role_name", roleName),
+			logger.Err(err),
+		)
+
+		// 检查错误类型
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "不存在") {
+			utils.ResponseError(c, http.StatusNotFound, "角色不存在")
+		} else if strings.Contains(err.Error(), "conflict") || strings.Contains(err.Error(), "未拥有") {
+			utils.ResponseError(c, http.StatusConflict, "用户未拥有该角色")
+		} else {
+			utils.ResponseError(c, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	logger.Info("撤销角色成功",
+		logger.String("request_id", requestID),
+		logger.Int64("user_id", userID),
+		logger.String("role_name", roleName),
+	)
+
+	utils.ResponseSuccess(c, "撤销成功", nil)
 }

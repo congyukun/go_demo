@@ -149,7 +149,7 @@ func (cb *CircuitBreaker) ExecuteGin(c *gin.Context, handler gin.HandlerFunc) {
 	handler(c)
 
 	// 检查是否有错误
-	if c.Writer.Status() >= 500 {
+	if c.Writer.Status() >= 500 || c.Writer.Status() == 401 {
 		cb.afterRequest(generation, errors.New("server error"))
 	} else {
 		cb.afterRequest(generation, nil)

@@ -1,12 +1,13 @@
 package tests
 
 import (
+	"testing"
+
 	"go_demo/internal/models"
 	"go_demo/internal/repository"
 	"go_demo/internal/service"
 	"go_demo/pkg/logger"
 	"go_demo/pkg/validator"
-	"testing"
 )
 
 func TestAuthServiceLayer(t *testing.T) {
@@ -38,7 +39,7 @@ func TestAuthServiceLayer(t *testing.T) {
 			Mobile:   "13812345678",
 		}
 
-		user, err := authService.Register(req)
+		user, err := authService.Register(nil, req)
 		if err != nil {
 			t.Fatalf("注册失败: %v", err)
 		}
@@ -66,13 +67,13 @@ func TestAuthServiceLayer(t *testing.T) {
 		}
 
 		// 第一次注册
-		_, err := authService.Register(req)
+		_, err := authService.Register(nil, req)
 		if err != nil {
 			t.Fatalf("第一次注册失败: %v", err)
 		}
 
 		// 第二次注册应该失败
-		_, err = authService.Register(req)
+		_, err = authService.Register(nil, req)
 		if err == nil {
 			t.Error("重复注册应该失败")
 		}
@@ -92,7 +93,7 @@ func TestAuthServiceLayer(t *testing.T) {
 			Mobile:   "18666666666",
 		}
 
-		_, err := authService.Register(registerReq)
+		_, err := authService.Register(nil, registerReq)
 		if err != nil {
 			t.Fatalf("注册失败: %v", err)
 		}
@@ -103,7 +104,7 @@ func TestAuthServiceLayer(t *testing.T) {
 			Password: "123456",
 		}
 
-		response, err := authService.Login(loginReq)
+		response, err := authService.Login(nil, loginReq)
 		if err != nil {
 			t.Fatalf("登录失败: %v", err)
 		}
@@ -127,7 +128,7 @@ func TestAuthServiceLayer(t *testing.T) {
 			Password: "wrongpassword",
 		}
 
-		_, err := authService.Login(loginReq)
+		_, err := authService.Login(nil, loginReq)
 		if err == nil {
 			t.Error("错误的登录信息应该失败")
 		}

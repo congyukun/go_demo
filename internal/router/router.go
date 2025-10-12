@@ -188,18 +188,40 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 			auth.Use(r.rateLimiter.UserMiddleware())
 		}
 
+		// 公开路由（不需要认证）
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
 		auth.POST("/refresh", r.authHandler.RefreshToken)
-		auth.POST("/logout", middleware.Auth(), r.authHandler.Logout)
-		auth.GET("/profile", middleware.Auth(), r.authHandler.GetProfile)
+		
+		// 需要认证的路由
+		auth.POST("/logout", middleware.JWTAuthMiddleware(), r.authHandler.Logout)
+		auth.GET("/profile", middleware.JWTAuthMiddleware(), r.authHandler.GetProfile)
+		
+		// 角色管理路由（需要管理员权限）
+		roles := auth.Group("/roles")
+		roles.Use(middleware.JWTAuthMiddleware(), middleware.RoleMiddleware("admin"))
+		{
+			roles.GET("", r.authHandler.GetAllRoles)
+			roles.POST("", r.authHandler.CreateRole)
+			roles.PUT("/:role_id", r.authHandler.UpdateRole)
+			roles.DELETE("/:role_id", r.authHandler.DeleteRole)
+		}
+		
+		// 用户角色管理路由（需要管理员权限）
+		userRoles := auth.Group("/users/:user_id/roles")
+		userRoles.Use(middleware.JWTAuthMiddleware(), middleware.RoleMiddleware("admin"))
+		{
+			userRoles.GET("", r.authHandler.GetUserRoles)
+			userRoles.POST("", r.authHandler.AssignRole)
+			userRoles.POST("/revoke", r.authHandler.RevokeRole)
+		}
 	}
 }
 
 // setupUserRoutes 设置用户路由
 func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
-	users.Use(middleware.Auth()) // 用户相关接口需要JWT认证
+	users.Use(middleware.JWTAuthMiddleware()) // 用户相关接口需要JWT认证
 
 	// 为用户路由添加用户级限流
 	if r.rateLimiter != nil {
@@ -208,18 +230,22 @@ func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 
 	{
 		// 用户管理（管理员功能）
-		users.GET("", r.userHandler.GetUsers)
-		users.POST("", r.userHandler.CreateUser)
-		users.GET("/stats", r.userHandler.GetUserStats)
+		adminUsers := users.Group("")
+		adminUsers.Use(middleware.RoleMiddleware("admin"))
+		{
+			adminUsers.GET("", r.userHandler.GetUsers)
+			adminUsers.POST("", r.userHandler.CreateUser)
+			adminUsers.GET("/stats", r.userHandler.GetUserStats)
+		}
 
-		// 用户详情和操作
-		users.GET("/:id", r.userHandler.GetUser)
-		users.PUT("/:id", r.userHandler.UpdateUser)
-		users.DELETE("/:id", r.userHandler.DeleteUser)
+		// 用户详情和操作（本人或管理员）
+		users.GET("/:id", middleware.SelfOrAdminMiddleware(), r.userHandler.GetUser)
+		users.PUT("/:id", middleware.SelfOrAdminMiddleware(), r.userHandler.UpdateUser)
+		users.DELETE("/:id", middleware.AdminRequiredMiddleware(), r.userHandler.DeleteUser)
 
 		// 用户自己的操作
 		users.PUT("/profile", r.userHandler.UpdateProfile)
-		users.PUT("/Password", r.userHandler.ChangePassword)
+		users.PUT("/password", r.userHandler.ChangePassword)
 	}
 }
 

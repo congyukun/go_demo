@@ -2,148 +2,238 @@ package models
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
-// User 用户模型 - 匹配现有数据库表结构
+// Permission 权限定义
+type Permission struct {
+	ID          uint      `gorm:"primarykey"`
+	Code        string    `gorm:"uniqueIndex;size:50;not null"`        // 权限代码
+	Name        string    `gorm:"size:100;not null"`                   // 权限名称
+	Description string    `gorm:"size:255"`                            // 权限描述
+	Resource    string    `gorm:"size:50;not null"`                    // 资源
+	Action      string    `gorm:"size:50;not null"`                    // 操作
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// Role 角色定义
+type Role struct {
+	ID          uint         `gorm:"primarykey"`
+	Code        string       `gorm:"uniqueIndex;size:50;not null"`     // 角色代码
+	Name        string       `gorm:"size:100;not null"`                // 角色名称
+	Description string       `gorm:"size:255"`                         // 角色描述
+	Level       int          `gorm:"default:1"`                        // 角色级别，数字越大权限越高
+	Status      int          `gorm:"default:1"`                        // 状态：0=禁用，1=启用
+	Permissions []Permission `gorm:"many2many:role_permissions;"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// UserRole 用户角色关联
+type UserRole struct {
+	ID        uint      `gorm:"primarykey"`
+	UserID    uint      `gorm:"not null"`
+	RoleID    uint      `gorm:"not null"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Role      Role      `gorm:"foreignKey:RoleID"`                  // 角色信息
+}
+
+// RolePermission 角色权限关联
+type RolePermission struct {
+	ID           uint `gorm:"primarykey"`
+	RoleID       uint `gorm:"not null"`
+	PermissionID uint `gorm:"not null"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+// User 用户模型
 type User struct {
-	ID        int        `json:"id" gorm:"primarykey;column:id;type:int(11);AUTO_INCREMENT"`
-	Username  string     `json:"username" gorm:"uniqueIndex:idx_username;size:50;not null;column:username"`
-	Email     string     `json:"email" gorm:"uniqueIndex:idx_email;size:100;column:email"`
-	Name      string     `json:"name" gorm:"size:100;not null;column:name"`
-	Password  string     `json:"-" gorm:"size:255;not null;column:password"`
-	Status    int        `json:"status" gorm:"default:1;not null;column:status;comment:状态 1:正常 0:禁用"`
-	Mobile    string     `json:"mobile" gorm:"uniqueIndex:idx_mobile;size:20;not null;column:mobile"`
-	Role      int        `json:"role" gorm:"default:1;not null;column:role;comment:角色 1:用户 2:管理员"`
-	LastLogin time.Time  `json:"last_login" gorm:"column:last_login;comment:最后登录时间"`
-	CreatedAt time.Time  `json:"created_at" gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
-	UpdatedAt time.Time  `json:"updated_at" gorm:"column:updated_at;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
-	DeletedAt *time.Time `json:"-" gorm:"index:idx_deleted_at;column:deleted_at"`
+	ID           uint       `gorm:"primarykey"`
+	Username     string     `gorm:"uniqueIndex;size:50;not null"`
+	Email        string     `gorm:"uniqueIndex;size:100;not null"`
+	Password     string     `gorm:"size:255;not null"`              // 存储哈希后的密码
+	Phone        string     `gorm:"size:20"`
+	Mobile       string     `gorm:"size:20"`                        // 手机号
+	Name         string     `gorm:"size:100"`
+	Avatar       string     `gorm:"size:255"`
+	Status       int        `gorm:"default:1"`                      // 状态：0=禁用，1=启用
+	IsActivated  bool       `gorm:"default:true"`                   // 是否激活
+	LastLogin    *time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    *time.Time `gorm:"index"`
+	Roles        []Role     `gorm:"many2many:user_roles;"`
+	UserRoles    []UserRole `gorm:"foreignKey:UserID"`              // 用户角色关联
+	Permissions  []Permission                                       // 用户权限
 }
 
-// TableName 指定表名
-func (User) TableName() string {
-	return "users"
-}
-
-// UserResponse 用户响应结构
-type UserResponse struct {
-	ID        int       `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	Mobile    string    `json:"mobile"`
-	Status    int       `json:"status"`
-	Role      int       `json:"role"`
-	LastLogin time.Time `json:"last_login"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// ToResponse 转换为响应结构
+// ToResponse 转换为响应格式
 func (u *User) ToResponse() *UserResponse {
 	return &UserResponse{
 		ID:        u.ID,
 		Username:  u.Username,
 		Email:     u.Email,
+		Phone:     u.Phone,
 		Name:      u.Name,
-		Mobile:    u.Mobile,
+		Avatar:    u.Avatar,
 		Status:    u.Status,
-		Role:      u.Role,
 		LastLogin: u.LastLogin,
 		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		Roles:     u.GetRoleCodes(),
 	}
 }
 
-// UserListResponse 用户列表响应
-type UserListResponse struct {
-	Users []UserResponse `json:"users"`
-	Total int64          `json:"total"`
-	Page  int            `json:"page"`
-	Size  int            `json:"size"`
-}
-
-// UserCreateRequest 创建用户请求
-type UserCreateRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50" label:"用户名"`
-	Email    string `json:"email" validate:"required,email" label:"邮箱"`
-	Password string `json:"password" validate:"required,min=6,max=50" label:"密码"`
-	Name     string `json:"name" validate:"required,min=1,max=64" label:"姓名"`
-	Mobile   string `json:"mobile" validate:"required,mobile" label:"手机号"`
-}
-
-// UserUpdateRequest 更新用户请求
-type UserUpdateRequest struct {
-	Email  string `json:"email" validate:"omitempty,email" label:"邮箱"`
-	Name   string `json:"name" validate:"omitempty,min=1,max=100" label:"姓名"`
-	Mobile string `json:"mobile" validate:"omitempty,mobile" label:"手机号"`
-	Status *int   `json:"status" validate:"omitempty,oneof=0 1" label:"状态"`
-}
-
-// UserQuery 用户查询参数
-type UserQuery struct {
-	Page     int    `form:"page" validate:"omitempty,min=1" label:"页码"`
-	Size     int    `form:"size" validate:"omitempty,min=1,max=100" label:"每页数量"`
-	Username string `form:"username" validate:"omitempty,max=50" label:"用户名"`
-	Email    string `form:"email" validate:"omitempty,email" label:"邮箱"`
-	Status   *int   `form:"status" validate:"omitempty,oneof=0 1" label:"状态"`
-}
-
-// GetPage 获取页码，默认为1
-func (q *UserQuery) GetPage() int {
-	if q.Page <= 0 {
-		return 1
+// GetRoleCodes 获取用户角色代码列表
+func (u *User) GetRoleCodes() []string {
+	var roleCodes []string
+	for _, role := range u.Roles {
+		roleCodes = append(roleCodes, role.Code)
 	}
-	return q.Page
+	return roleCodes
 }
 
-// GetSize 获取每页数量，默认为10
-func (q *UserQuery) GetSize() int {
-	if q.Size <= 0 {
-		return 10
+// HasRole 检查用户是否拥有指定角色
+func (u *User) HasRole(roleCode string) bool {
+	for _, role := range u.Roles {
+		if role.Code == roleCode {
+			return true
+		}
 	}
-	if q.Size > 100 {
-		return 100
+	return false
+}
+
+// HasPermission 检查用户是否拥有指定权限
+func (u *User) HasPermission(resource, action string) bool {
+	for _, role := range u.Roles {
+		for _, permission := range role.Permissions {
+			if permission.Resource == resource && permission.Action == action {
+				return true
+			}
+		}
 	}
-	return q.Size
+	return false
 }
 
-// GetOffset 获取偏移量
-func (q *UserQuery) GetOffset() int {
-	return (q.GetPage() - 1) * q.GetSize()
-}
-
-// ChangePasswordRequest 修改密码请求
-type ChangePasswordRequest struct {
-	OldPassword string `json:"old_password" validate:"required" label:"原密码"`
-	NewPassword string `json:"new_password" validate:"required,min=6,max=50" label:"新密码"`
-}
-
-// UserProfileUpdateRequest 用户资料更新请求
-type UserProfileUpdateRequest struct {
-	Email  string `json:"email" validate:"omitempty,email" label:"邮箱"`
-	Name   string `json:"name" validate:"omitempty,min=1,max=100" label:"姓名"`
-	Mobile string `json:"mobile" validate:"omitempty,mobile" label:"手机号"`
+// GetMaxRoleLevel 获取用户的最大角色级别
+func (u *User) GetMaxRoleLevel() int {
+	maxLevel := 0
+	for _, role := range u.Roles {
+		if role.Level > maxLevel {
+			maxLevel = role.Level
+		}
+	}
+	return maxLevel
 }
 
 // IsActive 检查用户是否激活
 func (u *User) IsActive() bool {
-	return u.Status == 1
+	return u.IsActivated
 }
 
-// BeforeCreate GORM钩子：创建前
-func (u *User) BeforeCreate(tx *gorm.DB) error {
-	// 设置默认值
-	if u.Status == 0 {
-		u.Status = 1
+// UserResponse 用户响应格式
+type UserResponse struct {
+	ID        uint       `json:"id"`
+	Username  string     `json:"username"`
+	Email     string     `json:"email"`
+	Phone     string     `json:"phone"`
+	Name      string     `json:"name"`
+	Avatar    string     `json:"avatar"`
+	Status    int        `json:"status"`
+	LastLogin *time.Time `json:"last_login"`
+	CreatedAt time.Time  `json:"created_at"`
+	Roles     []string   `json:"roles"`
+}
+
+// UserQuery 用户查询参数
+type UserQuery struct {
+	Page     int   `json:"page" form:"page"`
+	Size     int   `json:"size" form:"size"`
+	Username string `json:"username" form:"username"`
+	Email    string `json:"email" form:"email"`
+	Status   *int  `json:"status" form:"status"`
+}
+
+// GetOffset 获取偏移量
+func (q *UserQuery) GetOffset() int {
+	if q.Page <= 0 {
+		q.Page = 1
 	}
-	return nil
+	return (q.Page - 1) * q.GetSize()
 }
 
-// BeforeUpdate GORM钩子：更新前
-func (u *User) BeforeUpdate(tx *gorm.DB) error {
-	// 可以在这里添加更新前的逻辑
-	return nil
+// GetSize 获取每页大小
+func (q *UserQuery) GetSize() int {
+	if q.Size <= 0 {
+		q.Size = 10
+	}
+	if q.Size > 100 {
+		q.Size = 100
+	}
+	return q.Size
+}
+
+// GetPage 获取页码
+func (q *UserQuery) GetPage() int {
+	if q.Page <= 0 {
+		q.Page = 1
+	}
+	return q.Page
+}
+
+// ChangePasswordRequest 修改密码请求
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required" validate:"required,min=6,max=50"`
+	NewPassword string `json:"new_password" binding:"required" validate:"required,min=6,max=50"`
+}
+
+// UpdateProfileRequest 更新用户资料请求
+type UpdateProfileRequest struct {
+	Name   string `json:"name" validate:"omitempty,max=100"`
+	Phone  string `json:"phone" validate:"omitempty,len=11"`
+	Avatar string `json:"avatar" validate:"omitempty,url"`
+}
+
+// UserCreateRequest 创建用户请求
+type UserCreateRequest struct {
+	Username string `json:"username" binding:"required" validate:"required,min=3,max=50"`
+	Password string `json:"password" binding:"required" validate:"required,min=6,max=50"`
+	Email    string `json:"email" binding:"required,email" validate:"required,email"`
+	Mobile   string `json:"mobile" validate:"omitempty,len=11"`
+	Name     string `json:"name" validate:"omitempty,max=100"`
+}
+
+// UserProfileUpdateRequest 更新用户资料请求
+type UserProfileUpdateRequest struct {
+	Email   string `json:"email" validate:"omitempty,email"`
+	Mobile  string `json:"mobile" validate:"omitempty,len=11"`
+	Name    string `json:"name" validate:"omitempty,max=100"`
+	Phone   string `json:"phone" validate:"omitempty,len=11"`
+	Avatar  string `json:"avatar" validate:"omitempty,url"`
+}
+
+// AssignRoleRequest 分配角色请求
+type AssignRoleRequest struct {
+	Roles []string `json:"roles" binding:"required" validate:"required,min=1,dive,required"` // 角色代码列表
+}
+
+// RevokeRoleRequest 撤销角色请求
+type RevokeRoleRequest struct {
+	Roles []string `json:"roles" binding:"required" validate:"required,min=1,dive,required"` // 角色代码列表
+}
+
+// CreateRoleRequest 创建角色请求
+type CreateRoleRequest struct {
+	Name        string   `json:"name" binding:"required" validate:"required,max=100"` // 角色名称
+	Code        string   `json:"code" binding:"required" validate:"required,max=50"`  // 角色代码
+	Description string   `json:"description" validate:"max=200"`                      // 角色描述
+	Permissions []string `json:"permissions" validate:"dive,required"`                // 权限代码列表
+}
+
+// UpdateRoleRequest 更新角色请求
+type UpdateRoleRequest struct {
+	Name        *string  `json:"name" validate:"omitempty,max=100"`  // 角色名称
+	Description *string  `json:"description" validate:"omitempty,max=200"` // 角色描述
+	Permissions []string `json:"permissions" validate:"dive,required"` // 权限代码列表
 }

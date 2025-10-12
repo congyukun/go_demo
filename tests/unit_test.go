@@ -3,6 +3,7 @@ package tests
 import (
 	"go_demo/internal/models"
 	"go_demo/internal/service"
+	"go_demo/internal/utils"
 	"testing"
 )
 
@@ -32,10 +33,25 @@ func TestUserModel(t *testing.T) {
 }
 
 func TestAuthService(t *testing.T) {
+	// 初始化JWT管理器
+	config := utils.JWTConfig{
+		SecretKey:     "test-secret-key",
+		AccessExpire:  3600,
+		RefreshExpire: 604800,
+		Issuer:        "go_demo_test",
+	}
+	utils.InitJWT(config)
+
+	// 生成有效的测试token
+	token, err := utils.GenerateAccessToken(1, "testuser", "user")
+	if err != nil {
+		t.Fatalf("Failed to generate test token: %v", err)
+	}
+
 	authService := service.NewAuthService(nil)
 
 	// 测试token验证
-	claims, err := authService.ValidateToken("test_token")
+	claims, err := authService.ValidateToken(token)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}

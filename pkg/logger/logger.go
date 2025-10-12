@@ -231,6 +231,10 @@ func Any(key string, val interface{}) zap.Field {
 	return zap.Any(key, val)
 }
 
+func Strings(key string, vals []string) zap.Field {
+	return zap.Strings(key, vals)
+}
+
 func Err(err error) zap.Field {
 	return zap.Error(err)
 }

@@ -35,7 +35,7 @@ func TestJWTManager(t *testing.T) {
 	})
 
 	t.Run("生成刷新token", func(t *testing.T) {
-		token, err := jwtManager.GenerateRefreshToken(userID, username)
+		token, err := jwtManager.GenerateRefreshToken(userID)
 		if err != nil {
 			t.Fatalf("生成刷新token失败: %v", err)
 		}
@@ -93,7 +93,7 @@ func TestJWTManager(t *testing.T) {
 
 	t.Run("刷新访问token", func(t *testing.T) {
 		// 生成刷新token
-		refreshToken, err := jwtManager.GenerateRefreshToken(userID, username)
+		refreshToken, err := jwtManager.GenerateRefreshToken(userID)
 		if err != nil {
 			t.Fatalf("生成刷新token失败: %v", err)
 		}
@@ -194,7 +194,7 @@ func TestGlobalJWTManager(t *testing.T) {
 	})
 
 	t.Run("全局函数-生成token对", func(t *testing.T) {
-		accessToken, refreshToken, err := utils.GenerateTokenPair(userID, username, role)
+		accessToken, refreshToken, err := utils.GetJWTManager().GenerateTokenPair(userID, username, role)
 		if err != nil {
 			t.Fatalf("生成token对失败: %v", err)
 		}
@@ -214,13 +214,13 @@ func TestGlobalJWTManager(t *testing.T) {
 
 	t.Run("全局函数-刷新token", func(t *testing.T) {
 		// 生成刷新token
-		refreshToken, err := utils.GenerateRefreshToken(userID, username)
+		refreshToken, err := utils.GenerateRefreshToken(userID)
 		if err != nil {
 			t.Fatalf("生成刷新token失败: %v", err)
 		}
 
 		// 刷新访问token
-		newAccessToken, err := utils.RefreshAccessToken(refreshToken, role)
+		newAccessToken, err := utils.GetJWTManager().RefreshAccessToken(refreshToken, role)
 		if err != nil {
 			t.Fatalf("刷新访问token失败: %v", err)
 		}

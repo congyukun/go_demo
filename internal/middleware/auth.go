@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"go_demo/internal/service"
 	"go_demo/internal/utils"
 	"go_demo/pkg/logger"
 	"net/http"
@@ -10,12 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Auth JWT认证中间件
-func Auth() gin.HandlerFunc {
+// JWTAuthMiddleware JWT认证中间件
+func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := utils.GetRequestID(c)
 
-		// 获取Authorization头
+		// 从请求头获取token
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			logger.Warn("JWT认证失败：未提供Authorization头",
@@ -23,101 +22,54 @@ func Auth() gin.HandlerFunc {
 				logger.String("path", c.Request.URL.Path),
 				logger.String("client_ip", c.ClientIP()),
 			)
-			utils.ResponseError(c, http.StatusUnauthorized, "未提供认证token")
+			utils.ResponseError(c, http.StatusUnauthorized, "未认证")
 			c.Abort()
 			return
 		}
 
-		// 提取token（去掉Bearer前缀）
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token == authHeader {
-			logger.Warn("JWT认证失败：token格式错误",
+		// 验证token格式
+		parts := strings.SplitN(authHeader, " ", 2)
+		if !(len(parts) == 2 && parts[0] == "Bearer") {
+			logger.Warn("JWT认证失败：Authorization格式错误",
 				logger.String("request_id", requestID),
 				logger.String("path", c.Request.URL.Path),
 				logger.String("client_ip", c.ClientIP()),
 			)
-			utils.ResponseError(c, http.StatusUnauthorized, "token格式错误")
-			c.Abort()
-			return
-		}
-
-		// 验证JWT token
-		claims, err := utils.ValidateToken(token)
-		if err != nil {
-			logger.Warn("JWT认证失败：token无效",
-				logger.String("request_id", requestID),
-				logger.String("path", c.Request.URL.Path),
-				logger.String("client_ip", c.ClientIP()),
-				logger.Err(err),
-			)
-			utils.ResponseError(c, http.StatusUnauthorized, "token无效")
-			c.Abort()
-			return
-		}
-
-		// 将用户信息存储到上下文
-		c.Set("user_id", claims.UserID)
-		c.Set("username", claims.Username)
-
-		logger.Debug("JWT认证成功",
-			logger.String("request_id", requestID),
-			logger.Int64("user_id", claims.UserID),
-			logger.String("username", claims.Username),
-			logger.String("path", c.Request.URL.Path),
-		)
-
-		c.Next()
-	}
-}
-
-// AuthWithService 使用AuthService的认证中间件（备用方案）
-func AuthWithService() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		requestID := utils.GetRequestID(c)
-
-		// 获取Authorization头
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			logger.Warn("认证失败：未提供Authorization头",
-				logger.String("request_id", requestID),
-				logger.String("path", c.Request.URL.Path),
-				logger.String("client_ip", c.ClientIP()),
-			)
-			utils.ResponseError(c, http.StatusUnauthorized, "未提供认证token")
+			utils.ResponseError(c, http.StatusUnauthorized, "认证格式错误")
 			c.Abort()
 			return
 		}
 
 		// 解析token
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token == authHeader {
-			// 如果没有Bearer前缀，直接使用原值
-			token = authHeader
-		}
-
-		// 验证token（这里使用一个简单的验证，实际项目中应该注入AuthService）
-		authService := service.NewAuthService(nil) // 临时创建，实际应该通过依赖注入
-		claims, err := authService.ValidateToken(token)
+		tokenString := parts[1]
+		// 使用正确的token验证函数名称
+		claims, err := utils.ValidateToken(tokenString)
 		if err != nil {
-			logger.Warn("认证失败：token无效",
+			logger.Warn("JWT认证失败：token解析错误",
 				logger.String("request_id", requestID),
 				logger.String("path", c.Request.URL.Path),
 				logger.String("client_ip", c.ClientIP()),
 				logger.Err(err),
 			)
-			utils.ResponseError(c, http.StatusUnauthorized, "token无效")
+			utils.ResponseError(c, http.StatusUnauthorized, "认证过期或无效")
 			c.Abort()
 			return
 		}
 
-		// 将用户信息存储到上下文
-		c.Set("user_id", claims.UserID)
-		c.Set("username", claims.Username)
+		// 将用户信息存储到上下文中
+		userID := claims.UserID
+		username := claims.Username
+		roles := claims.Roles
 
-		logger.Debug("认证成功",
+		c.Set("user_id", userID)
+		c.Set("username", username)
+		c.Set("roles", roles)
+
+		logger.Debug("JWT认证通过",
 			logger.String("request_id", requestID),
-			logger.Int("user_id", claims.UserID),
-			logger.String("username", claims.Username),
+			logger.Int64("user_id", userID),
+			logger.String("username", username),
+			logger.Strings("roles", roles),
 			logger.String("path", c.Request.URL.Path),
 		)
 

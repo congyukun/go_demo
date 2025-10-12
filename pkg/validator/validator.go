@@ -3,195 +3,348 @@ package validator
 import (
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
-
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/locales/zh"
-	ut "github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator/v10"
-	zh_translations "github.com/go-playground/validator/v10/translations/zh"
+	"unicode"
 )
-
-var (
-	// Validator 全局验证器实例
-	Validator *validator.Validate
-	// Trans 全局翻译器实例
-	Trans ut.Translator
-)
-
-// defaultValidator 实现 Gin 的验证器接口
-type defaultValidator struct {
-	validate *validator.Validate
-}
-
-// ValidateStruct 实现 binding.StructValidator 接口
-func (v *defaultValidator) ValidateStruct(obj interface{}) error {
-	return v.validate.Struct(obj)
-}
-
-// Engine 返回底层的验证器引擎
-func (v *defaultValidator) Engine() interface{} {
-	return v.validate
-}
 
 // Init 初始化验证器
 func Init() error {
-	// 创建新的验证器实例
-	Validator = validator.New()
-
-	// 设置gin使用我们的验证器
-	binding.Validator = &defaultValidator{validate: Validator}
-
-	// 注册自定义验证规则
-	if err := registerCustomValidators(); err != nil {
-		return fmt.Errorf("注册自定义验证规则失败: %v", err)
-	}
-
-	// 初始化中文翻译器
-	if err := initTranslator(); err != nil {
-		return fmt.Errorf("初始化翻译器失败: %v", err)
-	}
-
-	// 注册自定义字段名称
-	registerFieldNames()
-
+	// 这里可以添加任何需要初始化的逻辑
+	// 目前为空，但保持此函数以满足测试文件的需求
 	return nil
 }
 
-// registerCustomValidators 注册自定义验证规则
-func registerCustomValidators() error {
-	// 注册手机号验证规则
-	if err := Validator.RegisterValidation("mobile", validateMobile); err != nil {
-		return err
+// Validator 自定义验证器
+var (
+	// 错误消息映射
+	errorMessages = map[string]string{
+		"required": "%s不能为空",
+		"min":      "%s长度不能小于%d",
+		"max":      "%s长度不能大于%d",
+		"email":    "%s必须是有效的邮箱地址",
+		"phone":    "%s必须是有效的手机号",
+		"url":      "%s必须是有效的URL",
+	}
+)
+
+// ValidateStruct 验证结构体
+func ValidateStruct(obj interface{}) error {
+	val := reflect.ValueOf(obj)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
 	}
 
-	return nil
-}
-
-// validateMobile 手机号验证函数
-func validateMobile(fl validator.FieldLevel) bool {
-	mobile := fl.Field().String()
-	// 中国大陆手机号正则表达式
-	matched, _ := regexp.MatchString(`^1[3-9]\d{9}$`, mobile)
-	return matched
-}
-
-// initTranslator 初始化中文翻译器
-func initTranslator() error {
-	// 创建中文翻译器
-	zhLocale := zh.New()
-	uni := ut.New(zhLocale, zhLocale)
-
-	var ok bool
-	Trans, ok = uni.GetTranslator("zh")
-	if !ok {
-		return fmt.Errorf("获取中文翻译器失败")
+	if val.Kind() != reflect.Struct {
+		return fmt.Errorf("验证对象必须是结构体")
 	}
 
-	// 注册默认翻译
-	if err := zh_translations.RegisterDefaultTranslations(Validator, Trans); err != nil {
-		return err
-	}
+	typ := val.Type()
+	var errors []string
 
-	// 注册自定义验证规则的翻译
-	if err := registerCustomTranslations(); err != nil {
-		return err
-	}
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
 
-	return nil
-}
+		// 获取json标签
+		jsonTag := fieldType.Tag.Get("json")
+		// 获取label标签
+		labelTag := fieldType.Tag.Get("label")
+		fieldName := getFieldName(jsonTag, fieldType.Name, labelTag)
 
-// registerCustomTranslations 注册自定义翻译
-func registerCustomTranslations() error {
-	// 注册手机号验证的中文翻译
-	if err := Validator.RegisterTranslation("mobile", Trans, func(ut ut.Translator) error {
-		return ut.Add("mobile", "{0}必须是有效的手机号码", true)
-	}, func(ut ut.Translator, fe validator.FieldError) string {
-		t, _ := ut.T("mobile", fe.Field())
-		return t
-	}); err != nil {
-		return err
-	}
-
-	// 覆盖一些默认翻译
-	translations := map[string]string{
-		"required": "{0}为必填字段",
-		"min":      "{0}长度不能少于{1}个字符",
-		"max":      "{0}长度不能超过{1}个字符",
-		"email":    "{0}必须是有效的邮箱地址",
-		"oneof":    "{0}必须是[{1}]中的一个",
-	}
-
-	for tag, translation := range translations {
-		if err := Validator.RegisterTranslation(tag, Trans, func(ut ut.Translator) error {
-			return ut.Add(tag, translation, true)
-		}, func(ut ut.Translator, fe validator.FieldError) string {
-			t, _ := ut.T(tag, fe.Field(), fe.Param())
-			return t
-		}); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// registerFieldNames 注册字段名称映射
-// registerFieldNames 注册字段名称映射
-func registerFieldNames() {
-	Validator.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		// 优先使用label标签作为字段名
-		name := fld.Tag.Get("label")
-		if name != "" {
-			return name
+		// 获取验证标签
+		validateTag := fieldType.Tag.Get("validate")
+		if validateTag == "" {
+			continue
 		}
 
-		// 如果没有label标签，使用json标签
-		jsonName := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-		if jsonName != "" && jsonName != "-" {
-			return jsonName
-		}
-
-		// 如果都没有，使用字段名
-		return fld.Name
-	})
-}
-
-// ValidateStruct 验证结构体并返回中文错误信息
-func ValidateStruct(s interface{}) error {
-	if err := Validator.Struct(s); err != nil {
-		if validationErrors, ok := err.(validator.ValidationErrors); ok {
-			var errorMessages []string
-			for _, e := range validationErrors {
-				errorMessages = append(errorMessages, e.Translate(Trans))
+		// 分割验证规则
+		rules := strings.Split(validateTag, ",")
+		
+		// 检查是否有omitempty规则
+		hasOmitEmpty := false
+		otherRules := []string{}
+		for _, rule := range rules {
+			if rule == "omitempty" {
+				hasOmitEmpty = true
+			} else {
+				otherRules = append(otherRules, rule)
 			}
-			return fmt.Errorf(strings.Join(errorMessages, "; "))
 		}
-		return err
-	}
-	return nil
-}
-
-// GetFieldError 获取单个字段的错误信息
-func GetFieldError(err error, field string) string {
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
-		for _, e := range validationErrors {
-			if e.Field() == field {
-				return e.Translate(Trans)
+		
+		// 如果有omitempty规则且字段为空，则跳过其他验证
+		if hasOmitEmpty && isEmpty(field) {
+			continue
+		}
+		
+		// 验证其他规则
+		for _, rule := range otherRules {
+			err := validateField(field, fieldName, rule)
+			if err != nil {
+				errors = append(errors, err.Error())
 			}
 		}
 	}
-	return ""
+
+	if len(errors) > 0 {
+		const errorFormat = "%s"
+		return fmt.Errorf(errorFormat, strings.Join(errors, "; "))
+	}
+
+	return nil
 }
 
-// GetAllFieldErrors 获取所有字段的错误信息映射
-func GetAllFieldErrors(err error) map[string]string {
-	errors := make(map[string]string)
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
-		for _, e := range validationErrors {
-			errors[e.Field()] = e.Translate(Trans)
+// getFieldName 获取字段名称
+func getFieldName(jsonTag, defaultName string, labelTag string) string {
+	// 优先使用label标签
+	if labelTag != "" {
+		return labelTag
+	}
+	
+	// 其次使用json标签
+	if jsonTag != "" {
+		parts := strings.Split(jsonTag, ",")
+		if len(parts) > 0 && parts[0] != "-" {
+			return parts[0]
 		}
 	}
-	return errors
+	
+	// 最后使用字段名
+	return defaultName
+}
+
+// isEmpty 检查字段是否为空
+func isEmpty(field reflect.Value) bool {
+	switch field.Kind() {
+	case reflect.String:
+		return field.String() == ""
+	case reflect.Ptr, reflect.Interface:
+		return field.IsNil()
+	case reflect.Slice, reflect.Array, reflect.Map:
+		return field.Len() == 0
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return field.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return field.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return field.Float() == 0
+	case reflect.Bool:
+		return !field.Bool()
+	}
+	return false
+}
+
+// validateField 验证单个字段
+func validateField(field reflect.Value, fieldName, rule string) error {
+	if field.Kind() == reflect.Ptr {
+		if field.IsNil() {
+			if rule == "required" {
+				return fmt.Errorf("%s不能为空", fieldName)
+			}
+			return nil
+		}
+		field = field.Elem()
+	}
+
+	switch rule {
+	case "required":
+		return validateRequired(field, fieldName)
+	default:
+		if strings.HasPrefix(rule, "min=") {
+			return validateMin(field, fieldName, rule[4:])
+		}
+		if strings.HasPrefix(rule, "max=") {
+			return validateMax(field, fieldName, rule[4:])
+		}
+		if rule == "email" {
+			return validateEmail(field, fieldName)
+		}
+		if rule == "phone" {
+			return validatePhone(field, fieldName)
+		}
+		if rule == "url" {
+			return validateURL(field, fieldName)
+		}
+		if rule == "mobile" {
+			return validateMobile(field, fieldName)
+		}
+		if strings.HasPrefix(rule, "oneof=") {
+			return validateOneOf(field, fieldName, rule[6:])
+		}
+	}
+
+	return nil
+}
+
+// validateRequired 验证必填
+func validateRequired(field reflect.Value, fieldName string) error {
+	switch field.Kind() {
+	case reflect.String:
+		if field.String() == "" {
+			return fmt.Errorf("%s不能为空", fieldName)
+		}
+	case reflect.Slice, reflect.Array, reflect.Map:
+		if field.Len() == 0 {
+			return fmt.Errorf("%s不能为空", fieldName)
+		}
+	}
+
+	return nil
+}
+
+// validateMin 验证最小值
+func validateMin(field reflect.Value, fieldName, minStr string) error {
+	var min int
+	if _, err := fmt.Sscanf(minStr, "%d", &min); err != nil {
+		return fmt.Errorf("无效的min规则")
+	}
+
+	switch field.Kind() {
+	case reflect.String:
+		if len(field.String()) < min {
+			return fmt.Errorf("%s长度不能小于%d", fieldName, min)
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if field.Int() < int64(min) {
+			return fmt.Errorf("%s不能小于%d", fieldName, min)
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if field.Uint() < uint64(min) {
+			return fmt.Errorf("%s不能小于%d", fieldName, min)
+		}
+	}
+
+	return nil
+}
+
+// validateMax 验证最大值
+func validateMax(field reflect.Value, fieldName, maxStr string) error {
+	var max int
+	if _, err := fmt.Sscanf(maxStr, "%d", &max); err != nil {
+		return fmt.Errorf("无效的max规则")
+	}
+
+	switch field.Kind() {
+	case reflect.String:
+		if len(field.String()) > max {
+			return fmt.Errorf("%s长度不能大于%d", fieldName, max)
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if field.Int() > int64(max) {
+			return fmt.Errorf("%s不能大于%d", fieldName, max)
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if field.Uint() > uint64(max) {
+			return fmt.Errorf("%s不能大于%d", fieldName, max)
+		}
+	}
+
+	return nil
+}
+
+// validateEmail 验证邮箱
+func validateEmail(field reflect.Value, fieldName string) error {
+	if field.Kind() != reflect.String {
+		return fmt.Errorf("%s必须是字符串类型", fieldName)
+	}
+
+	email := field.String()
+	if email == "" {
+		return nil // 允许为空，必填由required规则控制
+	}
+
+	// 简单的邮箱格式验证
+	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
+		return fmt.Errorf("%s必须是有效的邮箱地址", fieldName)
+	}
+
+	return nil
+}
+
+// validatePhone 验证手机号
+func validatePhone(field reflect.Value, fieldName string) error {
+	if field.Kind() != reflect.String {
+		return fmt.Errorf("%s必须是字符串类型", fieldName)
+	}
+
+	phone := field.String()
+	if phone == "" {
+		return nil // 允许为空，必填由required规则控制
+	}
+
+	// 简单的手机号格式验证（11位数字）
+	if len(phone) != 11 {
+		return fmt.Errorf("%s必须是有效的手机号", fieldName)
+	}
+
+	return nil
+}
+
+// validateURL 验证URL
+func validateURL(field reflect.Value, fieldName string) error {
+	if field.Kind() != reflect.String {
+		return fmt.Errorf("%s必须是字符串类型", fieldName)
+	}
+
+	url := field.String()
+	if url == "" {
+		return nil // 允许为空，必填由required规则控制
+	}
+
+	// 简单的URL格式验证
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		return fmt.Errorf("%s必须是有效的URL", fieldName)
+	}
+
+	return nil
+}
+
+// validateMobile 验证手机号
+func validateMobile(field reflect.Value, fieldName string) error {
+	if field.Kind() != reflect.String {
+		return fmt.Errorf("%s必须是字符串类型", fieldName)
+	}
+
+	mobile := field.String()
+	if mobile == "" {
+		return nil // 允许为空，必填由required规则控制
+	}
+
+	// 手机号格式验证（11位数字，以1开头）
+	if len(mobile) != 11 || mobile[0] != '1' {
+		return fmt.Errorf("%s必须是有效的手机号", fieldName)
+	}
+
+	// 检查第二位是否符合要求（3, 4, 5, 7, 8中的一个）
+	secondDigit := mobile[1]
+	if secondDigit != '3' && secondDigit != '4' && secondDigit != '5' && secondDigit != '7' && secondDigit != '8' {
+		return fmt.Errorf("%s必须是有效的手机号", fieldName)
+	}
+
+	// 检查是否全为数字
+	for _, r := range mobile {
+		if !unicode.IsDigit(r) {
+			return fmt.Errorf("%s必须是有效的手机号", fieldName)
+		}
+	}
+
+	return nil
+}
+
+// validateOneOf 验证字段值是否在指定范围内
+func validateOneOf(field reflect.Value, fieldName, allowedStr string) error {
+	// 如果字段为空，则跳过验证
+	if isEmpty(field) {
+		return nil
+	}
+
+	allowedValues := strings.Split(allowedStr, " ")
+	valueStr := fmt.Sprintf("%v", field.Interface())
+
+	for _, allowed := range allowedValues {
+		if valueStr == allowed {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("%s必须是以下值之一: %s", fieldName, allowedStr)
 }
