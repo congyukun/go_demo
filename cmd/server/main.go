@@ -4,6 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
 	"go_demo/internal/config"
 	"go_demo/internal/handler"
 	"go_demo/internal/repository"
@@ -13,14 +22,6 @@ import (
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
 	"go_demo/pkg/validator"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // @title Go Demo API
