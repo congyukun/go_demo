@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- 插入默认管理员用户
 -- 密码: admin123 (bcrypt hash)
-INSERT IGNORE INTO `users` (`username`, `email`, `password_hash`, `phone`, `status`, `role`, `created_at`, `updated_at`) 
+INSERT IGNORE INTO `users` (`username`, `email`, `password`, `mobile`, `status`, `role`, `created_at`, `updated_at`) 
 VALUES 
 ('admin', 'admin@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '13800138000', 1, 'admin', NOW(), NOW()),
 ('demo', 'demo@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '13812345678', 1, 'user', NOW(), NOW());

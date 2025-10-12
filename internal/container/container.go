@@ -19,6 +19,11 @@ import (
 	"go_demo/pkg/validator"
 )
 
+// Handler 统一的处理器接口
+type Handler interface {
+	// 可以定义一些通用的方法，这里留空作为标记接口
+}
+
 // Container 依赖注入容器
 // 负责管理应用程序所有组件的生命周期和依赖关系
 type Container struct {
@@ -33,18 +38,22 @@ type Container struct {
 	Router         *router.Router
 	RateLimiterFactory *middleware.RateLimiterFactory
 	CircuitBreakerFactory *middleware.CircuitBreakerFactory
+	
+	// 用于存储所有handler的切片，便于将来扩展
+	Handlers []Handler
 }
 
 // NewContainer 创建依赖注入容器
 // 按照依赖关系顺序初始化所有组件
 func NewContainer(cfg *config.Config) (*Container, error) {
 	container := &Container{
-		Config: cfg,
+		Config:   cfg,
+		Handlers: make([]Handler, 0),
 	}
 
 	// 按照依赖关系顺序初始化组件
 	if err := container.initComponents(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("初始化组件失败: %w", err)
 	}
 
 	return container, nil
@@ -172,6 +181,9 @@ func (c *Container) initHandlerComponents() {
 	c.AuthHandler = handler.NewAuthHandler(c.AuthService, c.UserService)
 	c.UserHandler = handler.NewUserHandler(c.UserService)
 	
+	// 添加到handlers切片中
+	c.Handlers = append(c.Handlers, c.AuthHandler, c.UserHandler)
+	
 	// 使用工厂模式创建中间件
 	c.Router = router.NewRouterWithMiddleware(
 		c.AuthHandler,
@@ -191,6 +203,13 @@ func (c *Container) initRepositories() {
 // getRedisAddr 获取Redis连接地址
 func (c *Container) getRedisAddr() string {
 	return fmt.Sprintf("%s:%d", c.Config.Redis.Host, c.Config.Redis.Port)
+}
+
+// RegisterHandler 注册新的处理器
+func (c *Container) RegisterHandler(handler Handler) {
+	if handler != nil {
+		c.Handlers = append(c.Handlers, handler)
+	}
 }
 
 // Cleanup 清理资源

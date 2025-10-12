@@ -94,7 +94,7 @@ func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-// GetByPhone 根据手机号获取用户
+// GetByMobile 根据手机号获取用户
 func (r *userRepository) GetByMobile(mobile string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("mobile = ?", mobile).First(&user).Error

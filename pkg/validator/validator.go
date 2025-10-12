@@ -22,7 +22,7 @@ var (
 		"min":      "%s长度不能小于%d",
 		"max":      "%s长度不能大于%d",
 		"email":    "%s必须是有效的邮箱地址",
-		"phone":    "%s必须是有效的手机号",
+		"mobile":    "%s必须是有效的手机号",
 		"url":      "%s必须是有效的URL",
 	}
 )
@@ -158,8 +158,8 @@ func validateField(field reflect.Value, fieldName, rule string) error {
 		if rule == "email" {
 			return validateEmail(field, fieldName)
 		}
-		if rule == "phone" {
-			return validatePhone(field, fieldName)
+		if rule == "mobile" {
+			return validateMobile(field, fieldName)
 		}
 		if rule == "url" {
 			return validateURL(field, fieldName)
@@ -260,24 +260,6 @@ func validateEmail(field reflect.Value, fieldName string) error {
 	return nil
 }
 
-// validatePhone 验证手机号
-func validatePhone(field reflect.Value, fieldName string) error {
-	if field.Kind() != reflect.String {
-		return fmt.Errorf("%s必须是字符串类型", fieldName)
-	}
-
-	phone := field.String()
-	if phone == "" {
-		return nil // 允许为空，必填由required规则控制
-	}
-
-	// 简单的手机号格式验证（11位数字）
-	if len(phone) != 11 {
-		return fmt.Errorf("%s必须是有效的手机号", fieldName)
-	}
-
-	return nil
-}
 
 // validateURL 验证URL
 func validateURL(field reflect.Value, fieldName string) error {

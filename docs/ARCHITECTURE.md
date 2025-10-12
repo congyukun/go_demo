@@ -180,7 +180,7 @@ type User struct {
     Username     string    `gorm:"uniqueIndex;size:50"`
     Email        string    `gorm:"uniqueIndex;size:100"`
     PasswordHash string    `gorm:"size:255"`
-    Phone        string    `gorm:"size:20"`
+    Mobile       string    `gorm:"size:20"`
     Status       int       `gorm:"default:1"`
     Role         string    `gorm:"size:20;default:'user'"`
     LastLogin    *time.Time
@@ -195,7 +195,7 @@ type User struct {
 - `Username`: 用户名，唯一索引
 - `Email`: 邮箱，唯一索引
 - `PasswordHash`: 密码哈希值
-- `Phone`: 手机号
+- `Mobile`: 手机号
 - `Status`: 用户状态 (0=禁用, 1=启用)
 - `Role`: 用户角色
 - `LastLogin`: 最后登录时间

@@ -10,7 +10,6 @@ type User struct {
 	Username    string      `gorm:"uniqueIndex;size:50;not null"`
 	Email       string      `gorm:"uniqueIndex;size:100;not null"`
 	Password    string      `gorm:"size:255;not null"`              // 存储哈希后的密码
-	Phone       string      `gorm:"size:20"`
 	Mobile      string      `gorm:"size:20"`                        // 手机号
 	Name        string      `gorm:"size:100"`
 	Avatar      string      `gorm:"size:255"`
@@ -28,7 +27,7 @@ func (u *User) ToResponse() *UserResponse {
 		ID:        u.ID,
 		Username:  u.Username,
 		Email:     u.Email,
-		Phone:     u.Phone,
+		Mobile:    u.Mobile,
 		Name:      u.Name,
 		Avatar:    u.Avatar,
 		Status:    u.Status,
@@ -47,7 +46,7 @@ type UserResponse struct {
 	ID        uint       `json:"id"`
 	Username  string     `json:"username"`
 	Email     string     `json:"email"`
-	Phone     string     `json:"phone"`
+	Mobile    string     `json:"mobile"`
 	Name      string     `json:"name"`
 	Avatar    string     `json:"avatar"`
 	Status    int        `json:"status"`
@@ -100,7 +99,7 @@ type ChangePasswordRequest struct {
 // UpdateProfileRequest 更新用户资料请求
 type UpdateProfileRequest struct {
 	Name   string `json:"name" validate:"omitempty,max=100"`
-	Phone  string `json:"phone" validate:"omitempty,len=11"`
+	Mobile  string `json:"mobile" validate:"omitempty,len=11"`
 	Avatar string `json:"avatar" validate:"omitempty,url"`
 }
 
@@ -118,6 +117,5 @@ type UserProfileUpdateRequest struct {
 	Email   string `json:"email" validate:"omitempty,email"`
 	Mobile  string `json:"mobile" validate:"omitempty,len=11"`
 	Name    string `json:"name" validate:"omitempty,max=100"`
-	Phone   string `json:"phone" validate:"omitempty,len=11"`
 	Avatar  string `json:"avatar" validate:"omitempty,url"`
 }

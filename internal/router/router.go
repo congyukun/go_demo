@@ -11,21 +11,27 @@ import (
 	"go_demo/docs"
 	"go_demo/internal/handler"
 	"go_demo/internal/middleware"
-	"go_demo/internal/utils"
+// 移除未使用的导入 "go_demo/internal/utils"
 )
+
+// RateLimiter 接口定义
+type RateLimiter interface {
+	GlobalMiddleware() gin.HandlerFunc
+	UserMiddleware() gin.HandlerFunc
+}
+
+// CircuitBreaker 接口定义
+type CircuitBreaker interface {
+	Middleware() gin.HandlerFunc
+}
 
 // Router 路由管理器
 type Router struct {
-	engine      *gin.Engine
-	authHandler *handler.AuthHandler
-	userHandler *handler.UserHandler
-	rateLimiter interface {
-		GlobalMiddleware() gin.HandlerFunc
-		UserMiddleware() gin.HandlerFunc
-	}
-	circuitBreaker interface {
-		Middleware() gin.HandlerFunc
-	}
+	engine         *gin.Engine
+	authHandler    *handler.AuthHandler
+	userHandler    *handler.UserHandler
+	rateLimiter    RateLimiter
+	circuitBreaker CircuitBreaker
 }
 
 // NewRouter 创建新的路由管理器
@@ -40,13 +46,8 @@ func NewRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandle
 func NewRouterWithMiddleware(
 	authHandler *handler.AuthHandler,
 	userHandler *handler.UserHandler,
-	rateLimiter interface {
-		GlobalMiddleware() gin.HandlerFunc
-		UserMiddleware() gin.HandlerFunc
-	},
-	circuitBreaker interface {
-		Middleware() gin.HandlerFunc
-	},
+	rateLimiter RateLimiter,
+	circuitBreaker CircuitBreaker,
 ) *Router {
 	return &Router{
 		authHandler:    authHandler,
@@ -111,60 +112,18 @@ func (r *Router) setupRoutes() {
 
 // setupHealthRoutes 设置健康检查路由
 func (r *Router) setupHealthRoutes() {
-	// 为健康检查添加IP级限流
-	if r.rateLimiter != nil {
-		// 创建IP级限流中间件
-		ipRateLimiter := func(c *gin.Context) {
-			// 创建IP级限流配置
-			config := middleware.RateLimiterConfig{
-				KeyGenerator: func(c *gin.Context) string {
-					return "ip_rate_limit:" + c.ClientIP()
-				},
-				Algorithm:   "sliding_window",
-				Window:      time.Minute,
-				MaxRequests: 200, // 每分钟200个请求
-				Distributed: true,
-				OnLimitReached: func(c *gin.Context) {
-					utils.ResponseError(c, http.StatusTooManyRequests, "请求过于频繁，请稍后再试")
-				},
-			}
-			
-			// 获取缓存实例
-			cache := r.rateLimiter.(*middleware.RateLimiterFactory).Cache
-			
-			// 设置缓存
-			config.Cache = cache
-			
-			// 检查是否超过限流
-			allowed, err := middleware.IsAllowed(c.Request.Context(), config.KeyGenerator(c), config)
-			if err != nil {
-				c.Next()
-				return
-			}
-			
-			if !allowed {
-				config.OnLimitReached(c)
-				c.Abort()
-				return
-			}
-			
-			c.Next()
-		}
-		
-		r.engine.GET("/health", ipRateLimiter, func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"status": "ok",
-				"time":   time.Now().Format(time.RFC3339),
-			})
+	// 健康检查路由
+	r.engine.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"time":   time.Now().Format(time.RFC3339),
 		})
-	} else {
-		r.engine.GET("/health", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"status": "ok",
-				"time":   time.Now().Format(time.RFC3339),
-			})
-		})
-	}
+	})
+}
+
+// RouteGroup 定义路由组接口
+type RouteGroup interface {
+	Group(string, ...gin.HandlerFunc) *gin.RouterGroup
 }
 
 // setupAPIRoutes 设置 API 路由
@@ -177,6 +136,9 @@ func (r *Router) setupAPIRoutes() {
 
 	// 用户路由
 	r.setupUserRoutes(v1)
+	
+	// 可以在这里添加更多的路由组
+	// 例如：r.setupArticleRoutes(v1) 等
 }
 
 // setupAuthRoutes 设置认证路由
@@ -233,6 +195,14 @@ func (r *Router) setupSwaggerRoutes() {
 	_ = docs.SwaggerInfo
 	// Swagger文档路由
 	r.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+}
+
+// RegisterRoutes 注册新的路由
+// 该方法允许在运行时动态添加路由
+func (r *Router) RegisterRoutes(registerFunc func(*gin.Engine)) {
+	if r.engine != nil && registerFunc != nil {
+		registerFunc(r.engine)
+	}
 }
 
 // GetEngine 获取 Gin 引擎

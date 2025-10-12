@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -13,6 +13,25 @@ import (
 	"go_demo/pkg/errors"
 	"go_demo/pkg/logger"
 )
+
+// handleServiceError 统一处理服务层返回的错误
+func handleServiceError(c *gin.Context, err error, requestID string) {
+	// 记录错误日志
+	logger.Warn("服务调用失败",
+		logger.String("request_id", requestID),
+		logger.Err(err),
+	)
+
+	// 根据错误类型返回不同的HTTP状态码
+	appErr, ok := err.(*errors.AppError)
+	if ok {
+		utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
+		return
+	}
+
+	// 默认返回500错误
+	utils.ResponseError(c, http.StatusInternalServerError, "服务器内部错误")
+}
 
 // AuthHandler 认证处理器
 type AuthHandler struct {
@@ -58,21 +77,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// 调用服务层进行登录
 	response, err := h.authService.Login(c, req)
 	if err != nil {
-		logger.Warn("用户登录失败",
-			logger.String("request_id", requestID),
-			logger.String("username", req.Username),
-			logger.String("client_ip", c.ClientIP()),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusUnauthorized, err.Error())
+		handleServiceError(c, err, requestID)
 		return
 	}
 
@@ -107,41 +112,125 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	logger.Info("用户注册请求",
+		logger.String("request_id", requestID),
+		logger.String("username", req.Username),
+		logger.String("email", req.Email),
+		logger.String("client_ip", c.ClientIP()),
+	)
+
 	// 调用服务层进行注册
 	user, err := h.authService.Register(c, req)
 	if err != nil {
-		logger.Warn("用户注册失败",
-			logger.String("request_id", requestID),
-			logger.String("username", req.Username),
-			logger.String("email", req.Email),
-			logger.String("client_ip", utils.GetClientIP(c)),
-			logger.Err(err),
-		)
-
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-
-		if err.Error() == "用户名已存在" || err.Error() == "手机号已存在" {
-			utils.ResponseError(c, http.StatusConflict, err.Error())
-		} else {
-			utils.ResponseError(c, http.StatusBadRequest, err.Error())
-		}
+		handleServiceError(c, err, requestID)
 		return
 	}
 
 	logger.Info("用户注册成功",
 		logger.String("request_id", requestID),
 		logger.String("username", req.Username),
-		logger.String("mobile", req.Mobile),
 		logger.Int("user_id", int(user.ID)),
-		logger.String("client_ip", utils.GetClientIP(c)),
+		logger.String("client_ip", c.ClientIP()),
 	)
 
 	utils.ResponseSuccess(c, "注册成功", user)
+}
+
+// Logout 用户登出
+// @Summary 用户登出
+// @Description 用户登出接口
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response "登出成功"
+// @Failure 401 {object} utils.Response "未认证"
+// @Failure 500 {object} utils.Response "服务器内部错误"
+// @Router /api/v1/auth/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	requestID := middleware.GetTraceID(c)
+
+	// 从Authorization头获取token
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		utils.ResponseError(c, http.StatusUnauthorized, "未提供认证令牌")
+		return
+	}
+
+	// 提取Bearer token
+	tokenString := ""
+	if len(authHeader) > 7 && strings.ToUpper(authHeader[0:6]) == "BEARER" {
+		tokenString = authHeader[7:]
+	}
+
+	if tokenString == "" {
+		utils.ResponseError(c, http.StatusUnauthorized, "无效的认证令牌")
+		return
+	}
+
+	logger.Info("用户登出请求",
+		logger.String("request_id", requestID),
+		logger.String("client_ip", c.ClientIP()),
+	)
+
+	// 调用服务层进行登出
+	err := h.authService.Logout(tokenString)
+	if err != nil {
+		handleServiceError(c, err, requestID)
+		return
+	}
+
+	logger.Info("用户登出成功",
+		logger.String("request_id", requestID),
+		logger.String("client_ip", c.ClientIP()),
+	)
+
+	utils.ResponseSuccess(c, "登出成功", nil)
+}
+
+// GetProfile 获取用户资料
+// @Summary 获取用户资料
+// @Description 获取当前登录用户的资料
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response{data=models.UserResponse} "获取成功"
+// @Failure 401 {object} utils.Response "未认证"
+// @Failure 500 {object} utils.Response "服务器内部错误"
+// @Router /api/v1/auth/profile [get]
+func (h *AuthHandler) GetProfile(c *gin.Context) {
+	requestID := middleware.GetTraceID(c)
+
+	// 从上下文获取用户ID（由认证中间件设置）
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		utils.ResponseError(c, http.StatusUnauthorized, "未认证")
+		return
+	}
+
+	userID := userIDInterface.(int64)
+
+	logger.Info("获取用户资料请求",
+		logger.String("request_id", requestID),
+		logger.Int64("user_id", userID),
+		logger.String("client_ip", c.ClientIP()),
+	)
+
+	// 调用用户服务获取用户信息
+	user, err := h.userService.GetUserByID(int(userID))
+	if err != nil {
+		handleServiceError(c, err, requestID)
+		return
+	}
+
+	logger.Info("获取用户资料成功",
+		logger.String("request_id", requestID),
+		logger.Int64("user_id", userID),
+		logger.String("client_ip", c.ClientIP()),
+	)
+
+	utils.ResponseSuccess(c, "获取成功", user)
 }
 
 // RefreshToken 刷新访问令牌
@@ -180,40 +269,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	// 验证刷新令牌并生成新的访问令牌
 	claims, err := utils.ValidateRefreshToken(refreshToken)
 	if err != nil {
-		logger.Warn("刷新令牌验证失败",
-			logger.String("request_id", requestID),
-			logger.String("client_ip", c.ClientIP()),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusUnauthorized, "刷新令牌无效")
+		handleServiceError(c, err, requestID)
 		return
 	}
 
 	// 生成新的访问令牌
 	newAccessToken, err := utils.GenerateAccessToken(claims.UserID, claims.Username)
 	if err != nil {
-		logger.Error("生成新访问令牌失败",
-			logger.String("request_id", requestID),
-			logger.String("client_ip", c.ClientIP()),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusInternalServerError, "生成新令牌失败")
+		handleServiceError(c, err, requestID)
 		return
 	}
 
@@ -230,149 +293,4 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	}
 
 	utils.ResponseSuccess(c, "令牌刷新成功", response)
-}
-
-// Logout 用户登出
-// @Summary 用户登出
-// @Description 用户登出接口（可选实现，主要用于记录日志）
-// @Tags 认证
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} utils.Response "登出成功"
-// @Failure 401 {object} utils.Response "未认证"
-// @Router /api/v1/auth/logout [post]
-func (h *AuthHandler) Logout(c *gin.Context) {
-	requestID := middleware.GetTraceID(c)
-
-	// 从上下文获取用户信息（由认证中间件设置）
-	userID, exists := c.Get("user_id")
-	if !exists {
-		utils.ResponseError(c, http.StatusUnauthorized, "未认证")
-		return
-	}
-
-	username, _ := c.Get("username")
-
-	// 安全地将userID转换为int64
-	var userIDInt64 int64
-	switch v := userID.(type) {
-	case int64:
-		userIDInt64 = v
-	case int:
-		userIDInt64 = int64(v)
-	case float64:
-		userIDInt64 = int64(v)
-	default:
-		logger.Error("用户ID类型错误",
-			logger.String("request_id", requestID),
-			logger.Any("user_id", userID),
-			logger.String("type", fmt.Sprintf("%T", userID)),
-		)
-		utils.ResponseError(c, http.StatusInternalServerError, "用户ID类型错误")
-		return
-	}
-
-	logger.Info("用户登出",
-		logger.String("request_id", requestID),
-		logger.Int64("user_id", userIDInt64),
-		logger.Any("username", username),
-		logger.String("client_ip", c.ClientIP()),
-	)
-
-	// 调用服务层处理登出
-	err := h.authService.Logout(fmt.Sprintf("%d", userIDInt64))
-	if err != nil {
-		logger.Error("用户登出失败",
-			logger.String("request_id", requestID),
-			logger.Int64("user_id", userIDInt64),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusInternalServerError, "登出失败")
-		return
-	}
-
-	utils.ResponseSuccess(c, "登出成功", nil)
-}
-
-// GetProfile 获取当前用户信息
-// @Summary 获取当前用户信息
-// @Description 获取当前登录用户的详细信息
-// @Tags 认证
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} utils.Response{data=models.UserResponse} "获取成功"
-// @Failure 401 {object} utils.Response "未认证"
-// @Failure 500 {object} utils.Response "服务器内部错误"
-// @Router /api/v1/auth/profile [get]
-func (h *AuthHandler) GetProfile(c *gin.Context) {
-	requestID := middleware.GetTraceID(c)
-
-	// 从上下文获取用户信息（由认证中间件设置）
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
-		utils.ResponseError(c, http.StatusUnauthorized, "未认证")
-		return
-	}
-
-	// 安全地将userID转换为int64
-	var userIDInt64 int64
-	switch v := userIDInterface.(type) {
-	case int64:
-		userIDInt64 = v
-	case int:
-		userIDInt64 = int64(v)
-	case float64:
-		userIDInt64 = int64(v)
-	default:
-		logger.Error("用户ID类型错误",
-			logger.String("request_id", requestID),
-			logger.Any("user_id", userIDInterface),
-			logger.String("type", fmt.Sprintf("%T", userIDInterface)),
-		)
-		utils.ResponseError(c, http.StatusInternalServerError, "用户ID类型错误")
-		return
-	}
-
-	logger.Info("获取用户信息请求",
-		logger.String("request_id", requestID),
-		logger.Int64("user_id", userIDInt64),
-		logger.String("client_ip", c.ClientIP()),
-	)
-
-	// 调用用户服务获取用户详细信息
-	user, err := h.userService.GetUserByID(int(userIDInt64))
-	if err != nil {
-		logger.Error("获取用户信息失败",
-			logger.String("request_id", requestID),
-			logger.Int64("user_id", userIDInt64),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	logger.Info("获取用户信息成功",
-		logger.String("request_id", requestID),
-		logger.Int64("user_id", userIDInt64),
-	)
-
-	utils.ResponseSuccess(c, "获取成功", user)
 }

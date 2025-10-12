@@ -10,9 +10,10 @@ import (
 	"go_demo/internal/models"
 	"go_demo/internal/service"
 	"go_demo/internal/utils"
-	"go_demo/pkg/errors"
 	"go_demo/pkg/logger"
 )
+
+
 
 // UserHandler 用户处理器
 type UserHandler struct {
@@ -28,10 +29,10 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 
 // UserListResponse 用户列表响应
 type UserListResponse struct {
-	Users []models.UserResponse `json:"users"`
-	Total int64                 `json:"total"`
-	Page  int                   `json:"page"`
-	Size  int                   `json:"size"`
+	Users []*models.UserResponse `json:"users"`
+	Total int64                  `json:"total"`
+	Page  int                    `json:"page"`
+	Size  int                    `json:"size"`
 }
 
 // GetUsers 获取用户列表
@@ -65,38 +66,21 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	// 调用服务层获取用户列表
 	users, total, err := h.userService.GetUsers(page, size)
 	if err != nil {
-		logger.Error("获取用户列表失败",
-			logger.String("request_id", requestID),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusInternalServerError, err.Error())
+		handleServiceError(c, err, requestID)
 		return
 	}
 
 	// 构造响应
 	response := UserListResponse{
-		Users: make([]models.UserResponse, len(users)),
+		Users: users,
 		Total: total,
 		Page:  page,
 		Size:  size,
 	}
 
-	for i, user := range users {
-		response.Users[i] = *user
-	}
-
 	logger.Info("获取用户列表成功",
 		logger.String("request_id", requestID),
 		logger.Int64("total", total),
-		logger.Int("count", len(users)),
 	)
 
 	utils.ResponseSuccess(c, "获取成功", response)
@@ -136,24 +120,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	// 调用服务层获取用户信息
 	user, err := h.userService.GetUserByID(id)
 	if err != nil {
-		logger.Warn("获取用户详情失败",
-			logger.String("request_id", requestID),
-			logger.Int("user_id", id),
-			logger.Err(err),
-		)
-
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-
-		if err.Error() == "用户不存在" {
-			utils.ResponseError(c, http.StatusNotFound, err.Error())
-		} else {
-			utils.ResponseError(c, http.StatusInternalServerError, err.Error())
-		}
+		handleServiceError(c, err, requestID)
 		return
 	}
 
@@ -199,24 +166,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	// 调用服务层创建用户
 	user, err := h.userService.CreateUser(req)
 	if err != nil {
-		logger.Warn("创建用户失败",
-			logger.String("request_id", requestID),
-			logger.String("username", req.Username),
-			logger.Err(err),
-		)
-
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-
-		if err.Error() == "用户名已存在" || err.Error() == "邮箱已存在" || err.Error() == "手机号已存在" {
-			utils.ResponseError(c, http.StatusConflict, err.Error())
-		} else {
-			utils.ResponseError(c, http.StatusBadRequest, err.Error())
-		}
+		handleServiceError(c, err, requestID)
 		return
 	}
 
@@ -270,24 +220,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	// 调用服务层更新用户
 	user, err := h.userService.UpdateUser(id, req)
 	if err != nil {
-		logger.Warn("更新用户失败",
-			logger.String("request_id", requestID),
-			logger.Int("user_id", id),
-			logger.Err(err),
-		)
-
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-
-		if err.Error() == "用户不存在" {
-			utils.ResponseError(c, http.StatusNotFound, err.Error())
-		} else {
-			utils.ResponseError(c, http.StatusBadRequest, err.Error())
-		}
+		handleServiceError(c, err, requestID)
 		return
 	}
 
@@ -333,24 +266,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	// 调用服务层删除用户
 	err = h.userService.DeleteUser(id)
 	if err != nil {
-		logger.Warn("删除用户失败",
-			logger.String("request_id", requestID),
-			logger.Int("user_id", id),
-			logger.Err(err),
-		)
-
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-
-		if err.Error() == "用户不存在" {
-			utils.ResponseError(c, http.StatusNotFound, err.Error())
-		} else {
-			utils.ResponseError(c, http.StatusInternalServerError, err.Error())
-		}
+		handleServiceError(c, err, requestID)
 		return
 	}
 
@@ -406,20 +322,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	// 调用服务层更新用户资料
 	user, err := h.userService.UpdateUserProfile(int(userID), req)
 	if err != nil {
-		logger.Warn("更新用户资料失败",
-			logger.String("request_id", requestID),
-			logger.Int64("user_id", userID),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusBadRequest, err.Error())
+		handleServiceError(c, err, requestID)
 		return
 	}
 
@@ -475,20 +378,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	// 调用服务层修改密码
 	err := h.userService.ChangePassword(int(userID), req)
 	if err != nil {
-		logger.Warn("修改密码失败",
-			logger.String("request_id", requestID),
-			logger.Int64("user_id", userID),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusBadRequest, err.Error())
+		handleServiceError(c, err, requestID)
 		return
 	}
 
@@ -522,19 +412,7 @@ func (h *UserHandler) GetUserStats(c *gin.Context) {
 	// 调用服务层获取统计信息
 	stats, err := h.userService.GetUserStats()
 	if err != nil {
-		logger.Error("获取用户统计信息失败",
-			logger.String("request_id", requestID),
-			logger.Err(err),
-		)
-		
-		// 根据错误类型返回不同的HTTP状态码
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			utils.ResponseError(c, appErr.HTTPCode, appErr.Error())
-			return
-		}
-		
-		utils.ResponseError(c, http.StatusInternalServerError, err.Error())
+		handleServiceError(c, err, requestID)
 		return
 	}
 

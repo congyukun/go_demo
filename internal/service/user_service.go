@@ -235,9 +235,9 @@ func (s *userService) UpdateUserProfile(id int, req models.UserProfileUpdateRequ
 		user.Name = req.Name
 	}
 	
-	// 更新电话
-	if req.Phone != "" {
-		user.Phone = req.Phone
+	// 更新手机号
+	if req.Mobile != "" {
+		user.Mobile = req.Mobile
 	}
 	
 	// 更新头像
