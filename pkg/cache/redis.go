@@ -24,10 +24,15 @@ type RedisConfig struct {
 type RedisCache struct {
 	client *redis.Client
 	ctx    context.Context
+	prefix string // key 前缀，用于命名空间隔离
 }
 
-// NewRedisCache 创建Redis缓存客户端
 func NewRedisCache(config RedisConfig) (*RedisCache, error) {
+	return NewRedisCacheWithPrefix(config, "")
+}
+
+// NewRedisCacheWithPrefix 创建带命名空间前缀的 Redis 客户端
+func NewRedisCacheWithPrefix(config RedisConfig, prefix string) (*RedisCache, error) {
 	// 设置默认值
 	if config.PoolSize == 0 {
 		config.PoolSize = 10
@@ -59,10 +64,21 @@ func NewRedisCache(config RedisConfig) (*RedisCache, error) {
 	return &RedisCache{
 		client: client,
 		ctx:    ctx,
+		prefix: prefix,
 	}, nil
 }
 
 // Set 设置缓存
+var ErrCacheMiss = errors.New("缓存不存在")
+
+// k 生成带前缀的 key
+func (r *RedisCache) k(key string) string {
+	if r.prefix == "" {
+		return key
+	}
+	return r.prefix + key
+}
+
 func (r *RedisCache) Set(key string, value interface{}, expiration time.Duration) error {
 	// 序列化值
 	data, err := json.Marshal(value)
@@ -71,15 +87,14 @@ func (r *RedisCache) Set(key string, value interface{}, expiration time.Duration
 	}
 
 	// 设置缓存
-	return r.client.Set(r.ctx, key, data, expiration).Err()
+	return r.client.Set(r.ctx, r.k(key), data, expiration).Err()
 }
 
-// Get 获取缓存
 func (r *RedisCache) Get(key string) (string, error) {
-	val, err := r.client.Get(r.ctx, key).Result()
+	val, err := r.client.Get(r.ctx, r.k(key)).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return "", errors.New("缓存不存在")
+			return "", ErrCacheMiss
 		}
 		return "", err
 	}
@@ -103,12 +118,19 @@ func (r *RedisCache) GetObject(key string, dest interface{}) error {
 
 // Delete 删除缓存
 func (r *RedisCache) Delete(keys ...string) error {
-	return r.client.Del(r.ctx, keys...).Err()
+	if len(keys) == 0 {
+		return nil
+	}
+	withPrefix := make([]string, len(keys))
+	for i, k := range keys {
+		withPrefix[i] = r.k(k)
+	}
+	return r.client.Del(r.ctx, withPrefix...).Err()
 }
 
 // Exists 检查缓存是否存在
 func (r *RedisCache) Exists(key string) (bool, error) {
-	result, err := r.client.Exists(r.ctx, key).Result()
+	result, err := r.client.Exists(r.ctx, r.k(key)).Result()
 	if err != nil {
 		return false, err
 	}
@@ -117,32 +139,32 @@ func (r *RedisCache) Exists(key string) (bool, error) {
 
 // Expire 设置过期时间
 func (r *RedisCache) Expire(key string, expiration time.Duration) error {
-	return r.client.Expire(r.ctx, key, expiration).Err()
+	return r.client.Expire(r.ctx, r.k(key), expiration).Err()
 }
 
 // TTL 获取剩余过期时间
 func (r *RedisCache) TTL(key string) (time.Duration, error) {
-	return r.client.TTL(r.ctx, key).Result()
+	return r.client.TTL(r.ctx, r.k(key)).Result()
 }
 
 // Increment 自增
 func (r *RedisCache) Increment(key string) (int64, error) {
-	return r.client.Incr(r.ctx, key).Result()
+	return r.client.Incr(r.ctx, r.k(key)).Result()
 }
 
 // IncrementBy 自增指定值
 func (r *RedisCache) IncrementBy(key string, value int64) (int64, error) {
-	return r.client.IncrBy(r.ctx, key, value).Result()
+	return r.client.IncrBy(r.ctx, r.k(key), value).Result()
 }
 
 // Decrement 自减
 func (r *RedisCache) Decrement(key string) (int64, error) {
-	return r.client.Decr(r.ctx, key).Result()
+	return r.client.Decr(r.ctx, r.k(key)).Result()
 }
 
 // DecrementBy 自减指定值
 func (r *RedisCache) DecrementBy(key string, value int64) (int64, error) {
-	return r.client.DecrBy(r.ctx, key, value).Result()
+	return r.client.DecrBy(r.ctx, r.k(key), value).Result()
 }
 
 // SetNX 仅在键不存在时设置（用于分布式锁）
@@ -152,7 +174,7 @@ func (r *RedisCache) SetNX(key string, value interface{}, expiration time.Durati
 		return false, fmt.Errorf("序列化失败: %w", err)
 	}
 
-	return r.client.SetNX(r.ctx, key, data, expiration).Result()
+	return r.client.SetNX(r.ctx, r.k(key), data, expiration).Result()
 }
 
 // HSet 设置哈希字段
@@ -162,67 +184,67 @@ func (r *RedisCache) HSet(key, field string, value interface{}) error {
 		return fmt.Errorf("序列化失败: %w", err)
 	}
 
-	return r.client.HSet(r.ctx, key, field, data).Err()
+	return r.client.HSet(r.ctx, r.k(key), field, data).Err()
 }
 
 // HGet 获取哈希字段
 func (r *RedisCache) HGet(key, field string) (string, error) {
-	return r.client.HGet(r.ctx, key, field).Result()
+	return r.client.HGet(r.ctx, r.k(key), field).Result()
 }
 
 // HGetAll 获取所有哈希字段
 func (r *RedisCache) HGetAll(key string) (map[string]string, error) {
-	return r.client.HGetAll(r.ctx, key).Result()
+	return r.client.HGetAll(r.ctx, r.k(key)).Result()
 }
 
 // HDelete 删除哈希字段
 func (r *RedisCache) HDelete(key string, fields ...string) error {
-	return r.client.HDel(r.ctx, key, fields...).Err()
+	return r.client.HDel(r.ctx, r.k(key), fields...).Err()
 }
 
 // LPush 列表左侧插入
 func (r *RedisCache) LPush(key string, values ...interface{}) error {
-	return r.client.LPush(r.ctx, key, values...).Err()
+	return r.client.LPush(r.ctx, r.k(key), values...).Err()
 }
 
 // RPush 列表右侧插入
 func (r *RedisCache) RPush(key string, values ...interface{}) error {
-	return r.client.RPush(r.ctx, key, values...).Err()
+	return r.client.RPush(r.ctx, r.k(key), values...).Err()
 }
 
 // LPop 列表左侧弹出
 func (r *RedisCache) LPop(key string) (string, error) {
-	return r.client.LPop(r.ctx, key).Result()
+	return r.client.LPop(r.ctx, r.k(key)).Result()
 }
 
 // RPop 列表右侧弹出
 func (r *RedisCache) RPop(key string) (string, error) {
-	return r.client.RPop(r.ctx, key).Result()
+	return r.client.RPop(r.ctx, r.k(key)).Result()
 }
 
 // LRange 获取列表范围
 func (r *RedisCache) LRange(key string, start, stop int64) ([]string, error) {
-	return r.client.LRange(r.ctx, key, start, stop).Result()
+	return r.client.LRange(r.ctx, r.k(key), start, stop).Result()
 }
 
 // SAdd 集合添加成员
 func (r *RedisCache) SAdd(key string, members ...interface{}) error {
-	return r.client.SAdd(r.ctx, key, members...).Err()
+	return r.client.SAdd(r.ctx, r.k(key), members...).Err()
 }
 
 // SMembers 获取集合所有成员
 func (r *RedisCache) SMembers(key string) ([]string, error) {
-	return r.client.SMembers(r.ctx, key).Result()
+	return r.client.SMembers(r.ctx, r.k(key)).Result()
 }
 
 // SIsMember 检查是否为集合成员
 func (r *RedisCache) SIsMember(key string, member interface{}) (bool, error) {
-	return r.client.SIsMember(r.ctx, key, member).Result()
+	return r.client.SIsMember(r.ctx, r.k(key), member).Result()
 }
 
 // SRemove 移除集合成员
 func (r *RedisCache) SRemove(key string, members ...interface{}) error {
-	return r.client.SRem(r.ctx, key, members...).Err()
+	return r.client.SRem(r.ctx, r.k(key), members...).Err()
 }
 
 // ZAdd 添加有序集合成员
@@ -245,12 +267,12 @@ func (r *RedisCache) ZAdd(key string, members ...*ZMember) error {
 
 // ZRange 获取有序集合范围
 func (r *RedisCache) ZRange(key string, start, stop int64) ([]string, error) {
-	return r.client.ZRange(r.ctx, key, start, stop).Result()
+	return r.client.ZRange(r.ctx, r.k(key), start, stop).Result()
 }
 
 // ZRangeWithScores 获取有序集合范围（包含分数）
 func (r *RedisCache) ZRangeWithScores(key string, start, stop int64) ([]*ZMember, error) {
-	redisZs, err := r.client.ZRangeWithScores(r.ctx, key, start, stop).Result()
+	redisZs, err := r.client.ZRangeWithScores(r.ctx, r.k(key), start, stop).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +310,7 @@ func (r *RedisCache) ZRem(key string, members ...string) error {
 		interfaces[i] = member
 	}
 	
-	return r.client.ZRem(r.ctx, key, interfaces...).Err()
+	return r.client.ZRem(r.ctx, r.k(key), interfaces...).Err()
 }
 
 // ZRemRangeByScore 按分数范围删除有序集合成员
@@ -301,15 +323,14 @@ func (r *RedisCache) ZRemRangeByScore(ctx interface{}, key, min, max string) (in
 		contextVal = r.ctx
 	}
 	
-	return r.client.ZRemRangeByScore(contextVal, key, min, max).Result()
+	return r.client.ZRemRangeByScore(contextVal, r.k(key), min, max).Result()
 }
 
 // ZCard 获取有序集合成员数量
 func (r *RedisCache) ZCard(key string) (int64, error) {
-	return r.client.ZCard(r.ctx, key).Result()
+	return r.client.ZCard(r.ctx, r.k(key)).Result()
 }
 
-// SetExpire 设置键的过期时间
 func (r *RedisCache) SetExpire(ctx interface{}, key string, expiration time.Duration) error {
 	// 处理context参数
 	var contextVal context.Context
@@ -319,7 +340,7 @@ func (r *RedisCache) SetExpire(ctx interface{}, key string, expiration time.Dura
 		contextVal = r.ctx
 	}
 	
-	return r.client.Expire(contextVal, key, expiration).Err()
+	return r.client.Expire(contextVal, r.k(key), expiration).Err()
 }
 
 // FlushDB 清空当前数据库

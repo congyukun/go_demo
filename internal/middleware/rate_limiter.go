@@ -6,12 +6,11 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/gin-gonic/gin"
-
 	"go_demo/internal/utils"
 	"go_demo/pkg/cache"
 	"go_demo/pkg/logger"
+
+	"github.com/gin-gonic/gin"
 )
 
 // RateLimiterConfig 限流配置
@@ -97,12 +96,16 @@ func RateLimiter(config RateLimiterConfig) gin.HandlerFunc {
 	}
 }
 
-// isAllowed 检查是否允许请求
 func isAllowed(ctx context.Context, key string, config RateLimiterConfig) (bool, error) {
-	if config.Distributed && config.Cache != nil {
+	// 项目统一采用分布式限流（依赖 Redis）
+	if config.Distributed {
+		if config.Cache == nil {
+			return false, fmt.Errorf("分布式限流需要 Redis 缓存: cache 未设置")
+		}
 		return isAllowedDistributed(ctx, key, config)
 	}
-	return isAllowedLocal(key, config)
+	// 禁用本地限流策略，统一要求使用分布式
+	return false, fmt.Errorf("本地限流已禁用，请使用分布式限流")
 }
 
 // IsAllowed 导出的isAllowed函数，供其他包使用
@@ -187,17 +190,9 @@ func isAllowedSlidingWindowDistributed(ctx context.Context, key string, config R
 	return true, nil
 }
 
-// isAllowedLocal 本地限流检查
 func isAllowedLocal(key string, config RateLimiterConfig) (bool, error) {
-	// 这里可以使用内存中的限流器，例如golang.org/x/time/rate
-	// 为了简单起见，这里只实现一个基本的本地限流
-	// 在生产环境中，建议使用更成熟的限流库
-	
-	// 这里只是一个示例，实际应用中应该使用更精确的限流算法
-	// 例如令牌桶或滑动窗口算法
-	
-	// 由于我们已经有Redis缓存，这里简化实现，直接使用分布式限流
-	return false, fmt.Errorf("本地限流未实现，请使用分布式限流")
+	// 项目策略：禁用本地限流，统一依赖Redis实现分布式限流
+	return false, fmt.Errorf("本地限流已禁用，请使用分布式限流")
 }
 
 // APIRateLimiter API级别的限流中间件
