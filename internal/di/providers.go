@@ -90,7 +90,7 @@ func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) { // di.Prov
 	redisCache, err := cache.NewRedisCache(redisCfg)
 	if err != nil {
 		// 统一使用 Redis，直接返回错误以便启动阶段显式失败，避免静默降级
-		return nil, fmt.Errorf("Redis缓存初始化失败: %w", err)
+		return nil, fmt.Errorf("redis缓存初始化失败: %w", err)
 	}
 	logger.Info("Redis缓存初始化成功", logger.String("addr", redisCfg.Addr))
 	return redisCache, nil
