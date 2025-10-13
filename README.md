@@ -385,6 +385,7 @@ rate_limiter:
 ### 文档索引
 - [🏗️ 架构文档](docs/ARCHITECTURE.md) - 系统架构详细说明
 - [📊 技术特性](docs/TECH_SUMMARY.md) - 核心特性总结
+- [📖 Swagger指南](docs/SWAGGER_UPDATE.md) - API文档使用指南
 
 ### 快速导航
 - [API文档](api/openapi.yaml) - OpenAPI 3.0规范
