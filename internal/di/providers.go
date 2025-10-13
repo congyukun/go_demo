@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"go_demo/internal/config"
 	"go_demo/internal/handler"
-	"go_demo/internal/middleware"
 	"go_demo/internal/repository"
 	"go_demo/internal/router"
 	"go_demo/internal/service"
@@ -26,7 +25,6 @@ import (
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
 	"go_demo/pkg/validator"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -34,7 +32,6 @@ import (
 
 // 统一缓存策略说明：
 // - 项目层面统一采用 Redis 作为缓存实现，启动阶段若 Redis 不可用则启动失败（不再回退至内存）。
-// - 限流中间件统一使用分布式策略（依赖 Redis），全局采用固定窗口算法，用户级采用滑动窗口算法。
 // - 熔断器仍为进程内实现，但其日志与配置通过 DI 注入统一管理。
 
 // ProvideConfig 加载配置
@@ -116,38 +113,6 @@ func ProvideUserService(userRepo repository.UserRepository) service.UserService 
 	return service.NewUserService(userRepo)
 }
 
-// ProvideRateLimiterFactory 初始化限流器工厂（优化：统一分布式依赖Redis，全局采用固定窗口，用户采用滑动窗口）
-func ProvideRateLimiterFactory(cfg *config.Config, c cache.CacheInterface) *middleware.RateLimiterFactory { // di.ProvideRateLimiterFactory()
-	global := middleware.DefaultRateLimiterConfig()
-	global.MaxRequests = cfg.RateLimiter.GlobalLimit
-	global.Window = time.Duration(cfg.RateLimiter.Window) * time.Second
-	// 全局限流更适合固定窗口，便于统一控制峰值
-	global.Algorithm = "fixed_window"
-	global.Distributed = true
-	global.Cache = c
-
-	userCfg := middleware.DefaultRateLimiterConfig()
-	userCfg.MaxRequests = cfg.RateLimiter.UserLimit
-	userCfg.Window = time.Duration(cfg.RateLimiter.Window) * time.Second
-	// 用户限流采用滑动窗口，提升平滑度与用户体验
-	userCfg.Algorithm = "sliding_window"
-	userCfg.Distributed = true
-	userCfg.Cache = c
-
-	return middleware.NewRateLimiterFactory(global, userCfg, c)
-}
-
-// ProvideCircuitBreakerFactory 初始化熔断器工厂
-func ProvideCircuitBreakerFactory(cfg *config.Config) *middleware.CircuitBreakerFactory { // di.ProvideCircuitBreakerFactory()
-	cbCfg := middleware.DefaultCircuitBreakerConfig("global")
-	cbCfg.MaxRequests = uint32(cfg.CircuitBreaker.MaxRequests)
-	cbCfg.MaxHalfOpenRequests = uint32(cfg.CircuitBreaker.HalfOpenMaxRequests)
-	cbCfg.ErrorThreshold = cfg.CircuitBreaker.ErrorThreshold
-	cbCfg.Timeout = time.Duration(cfg.CircuitBreaker.Timeout) * time.Second
-	cbCfg.Enabled = cfg.CircuitBreaker.Enabled
-	return middleware.NewCircuitBreakerFactory(cbCfg)
-}
-
 // ProvideAuthHandler 初始化 AuthHandler
 func ProvideAuthHandler(authSvc service.AuthService, userSvc service.UserService) *handler.AuthHandler { // di.ProvideAuthHandler()
 	return handler.NewAuthHandler(authSvc, userSvc)
@@ -159,8 +124,8 @@ func ProvideUserHandler(userSvc service.UserService) *handler.UserHandler { // d
 }
 
 // ProvideRouter 构建 Router 并注册路由
-func ProvideRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler, rl *middleware.RateLimiterFactory, cb *middleware.CircuitBreakerFactory) *router.Router { // di.ProvideRouter()
-	return router.NewRouterWithMiddleware(authHandler, userHandler, rl, cb)
+func ProvideRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler) *router.Router { // di.ProvideRouter()
+	return router.NewRouter(authHandler, userHandler)
 }
 
 // ProvideGinEngine 创建 Gin Engine（调用 Router.Setup）

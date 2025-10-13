@@ -33,13 +33,7 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 	userService := ProvideUserService(userRepository)
 	authHandler := ProvideAuthHandler(authService, userService)
 	userHandler := ProvideUserHandler(userService)
-	cacheInterface, err := ProvideCache(config)
-	if err != nil {
-		return nil, err
-	}
-	rateLimiterFactory := ProvideRateLimiterFactory(config, cacheInterface)
-	circuitBreakerFactory := ProvideCircuitBreakerFactory(config)
-	router := ProvideRouter(authHandler, userHandler, rateLimiterFactory, circuitBreakerFactory)
+	router := ProvideRouter(authHandler, userHandler)
 	engine := ProvideGinEngineWithInit(diAppReady, router)
 	return engine, nil
 }
@@ -62,11 +56,6 @@ var dataSet = wire.NewSet(
 var serviceSet = wire.NewSet(
 	ProvideAuthService,
 	ProvideUserService,
-)
-
-var middlewareSet = wire.NewSet(
-	ProvideRateLimiterFactory,
-	ProvideCircuitBreakerFactory,
 )
 
 var handlerSet = wire.NewSet(

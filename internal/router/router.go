@@ -1,37 +1,22 @@
 package router
 
 import (
+	"go_demo/docs"
+	"go_demo/internal/handler"
+	"go_demo/internal/middleware"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-
-	"go_demo/docs"
-	"go_demo/internal/handler"
-	"go_demo/internal/middleware"
-// 移除未使用的导入 "go_demo/internal/utils"
 )
-
-// RateLimiter 接口定义
-type RateLimiter interface {
-	GlobalMiddleware() gin.HandlerFunc
-	UserMiddleware() gin.HandlerFunc
-}
-
-// CircuitBreaker 接口定义
-type CircuitBreaker interface {
-	Middleware() gin.HandlerFunc
-}
 
 // Router 路由管理器
 type Router struct {
-	engine         *gin.Engine
-	authHandler    *handler.AuthHandler
-	userHandler    *handler.UserHandler
-	rateLimiter    RateLimiter
-	circuitBreaker CircuitBreaker
+	engine      *gin.Engine
+	authHandler *handler.AuthHandler
+	userHandler *handler.UserHandler
 }
 
 // NewRouter 创建新的路由管理器
@@ -39,21 +24,6 @@ func NewRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandle
 	return &Router{
 		authHandler: authHandler,
 		userHandler: userHandler,
-	}
-}
-
-// NewRouterWithMiddleware 使用中间件创建新的路由管理器
-func NewRouterWithMiddleware(
-	authHandler *handler.AuthHandler,
-	userHandler *handler.UserHandler,
-	rateLimiter RateLimiter,
-	circuitBreaker CircuitBreaker,
-) *Router {
-	return &Router{
-		authHandler:    authHandler,
-		userHandler:    userHandler,
-		rateLimiter:    rateLimiter,
-		circuitBreaker: circuitBreaker,
 	}
 }
 
@@ -85,17 +55,6 @@ func (r *Router) setupMiddleware() {
 		middleware.Trace(),      // 链路追踪
 		middleware.RequestLog(), // 请求日志记录
 	)
-
-	// 添加限流和熔断中间件
-	// 全局限流中间件
-	if r.rateLimiter != nil {
-		r.engine.Use(r.rateLimiter.GlobalMiddleware())
-	}
-
-	// 全局熔断中间件
-	if r.circuitBreaker != nil {
-		r.engine.Use(r.circuitBreaker.Middleware())
-	}
 }
 
 // setupRoutes 设置路由
@@ -136,7 +95,7 @@ func (r *Router) setupAPIRoutes() {
 
 	// 用户路由
 	r.setupUserRoutes(v1)
-	
+
 	// 可以在这里添加更多的路由组
 	// 例如：r.setupArticleRoutes(v1) 等
 }
@@ -145,11 +104,6 @@ func (r *Router) setupAPIRoutes() {
 func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 	auth := rg.Group("/auth")
 	{
-		// 为认证路由添加用户级限流
-		if r.rateLimiter != nil {
-			auth.Use(r.rateLimiter.UserMiddleware())
-		}
-
 		// 公开路由（不需要认证）
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
@@ -166,11 +120,6 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
 	users.Use(middleware.JWTAuthMiddleware()) // 用户相关接口需要JWT认证
-
-	// 为用户路由添加用户级限流
-	if r.rateLimiter != nil {
-		users.Use(r.rateLimiter.UserMiddleware())
-	}
 
 	{
 		// 用户管理（需要认证）

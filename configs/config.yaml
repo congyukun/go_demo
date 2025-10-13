@@ -44,20 +44,3 @@ redis:
   pool_size: 10
   min_idle_conns: 5
   max_retries: 3
-
-# 限流配置
-rate_limiter:
-  enabled: true
-  global_limit: 1000    # 全局限流，单位：请求/秒
-  user_limit: 100       # 用户限流，单位：请求/分钟
-  ip_limit: 200         # IP限流，单位：请求/分钟
-  window: 60            # 滑动窗口大小，单位：秒
-  algorithm: sliding    # 算法类型：fixed, sliding
-
-# 熔断器配置
-circuit_breaker:
-  enabled: true
-  max_requests: 5          # 触发熔断检查的最小请求数
-  half_open_max_requests: 3 # 半开状态最大请求数
-  timeout: 5                # 熔断器打开后的超时时间，单位：秒
-  error_threshold: 0.5       # 错误率阈值（0-1之间）

@@ -37,11 +37,6 @@ var serviceSet = wire.NewSet(
 	ProvideUserService,
 )
 
-var middlewareSet = wire.NewSet(
-	ProvideRateLimiterFactory,
-	ProvideCircuitBreakerFactory,
-)
-
 var handlerSet = wire.NewSet(
 	ProvideAuthHandler,
 	ProvideUserHandler,
@@ -58,7 +53,6 @@ func InitializeServer(configPath string) (*gin.Engine, error) { // di.Initialize
 		baseSet,
 		dataSet,
 		serviceSet,
-		middlewareSet,
 		handlerSet,
 		routerSet,
 	)
