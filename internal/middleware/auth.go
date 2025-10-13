@@ -11,7 +11,7 @@ import (
 )
 
 // Auth JWT认证中间件
-func Auth() gin.HandlerFunc {
+func Auth(jwtManager *utils.JWTManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := utils.GetRequestID(c)
 
@@ -42,7 +42,7 @@ func Auth() gin.HandlerFunc {
 		}
 
 		// 验证JWT token
-		claims, err := utils.ValidateToken(token)
+		claims, err := jwtManager.ValidateToken(token)
 		if err != nil {
 			logger.Warn("JWT认证失败：token无效",
 				logger.String("request_id", requestID),
@@ -71,7 +71,7 @@ func Auth() gin.HandlerFunc {
 }
 
 // AuthWithService 使用AuthService的认证中间件（备用方案）
-func AuthWithService() gin.HandlerFunc {
+func AuthWithService(authService service.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := utils.GetRequestID(c)
 
@@ -95,8 +95,7 @@ func AuthWithService() gin.HandlerFunc {
 			token = authHeader
 		}
 
-		// 验证token（这里使用一个简单的验证，实际项目中应该注入AuthService）
-		authService := service.NewAuthService(nil) // 临时创建，实际应该通过依赖注入
+		// 使用注入的AuthService验证token
 		claims, err := authService.ValidateToken(token)
 		if err != nil {
 			logger.Warn("认证失败：token无效",

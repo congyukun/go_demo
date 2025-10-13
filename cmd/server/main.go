@@ -4,15 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go_demo/internal/config"
-	"go_demo/internal/handler"
-	"go_demo/internal/repository"
-	"go_demo/internal/router"
-	"go_demo/internal/service"
-	"go_demo/internal/utils"
-	"go_demo/pkg/database"
+	"go_demo/internal/di"
 	"go_demo/pkg/logger"
-	"go_demo/pkg/validator"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // @title Go Demo API
@@ -45,86 +37,40 @@ import (
 // @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
-	// 初始化配置
-	cfg, err := config.Load("./configs/config.yaml")
+	// 初始化容器
+	container, err := di.InitializeContainer()
 	if err != nil {
-		panic(fmt.Sprintf("加载配置失败: %v", err))
+		panic(fmt.Sprintf("初始化容器失败: %v", err))
 	}
 
 	// 初始化日志
-	logConfig := logger.LogConfig{
-		Level:      cfg.Log.Level,
-		Format:     cfg.Log.Format,
-		OutputPath: cfg.Log.OutputPath,
-		ReqLogPath: cfg.Log.ReqLogPath,
-		MaxSize:    cfg.Log.MaxSize,
-		MaxBackup:  cfg.Log.MaxBackup,
-		MaxAge:     cfg.Log.MaxAge,
-		Compress:   cfg.Log.Compress,
-	}
-	if err := logger.Init(logConfig); err != nil {
-		panic(fmt.Sprintf("初始化日志失败: %v", err))
-	}
 	defer logger.Sync()
 
 	logger.Info("服务启动中...",
 		logger.String("app_name", "go_demo"),
 		logger.String("version", "1.0.0"),
-		logger.String("mode", cfg.Server.Mode),
+		logger.String("mode", container.Config.Server.Mode),
 	)
-	// 初始化全局JWT管理器
-	jwtConfig := cfg.JWT
-	utils.InitJWT(jwtConfig)
-	// 初始化数据库
-	mysqlConfig := cfg.Database
-	db, err := database.NewMySQL(mysqlConfig)
-	if err != nil {
-		logger.Fatal("数据库连接失败", logger.Err(err))
-	}
-	defer func(db *gorm.DB) {
-		err := database.Close(db)
-		if err != nil {
-			logger.Fatal("数据库链接关闭失败", logger.Err(err))
-		}
-	}(db)
-
-	// 初始化验证器
-	if err := validator.Init(); err != nil {
-		logger.Fatal("验证器初始化失败", logger.Err(err))
-	}
-	logger.Info("验证器初始化成功")
-
-	// 初始化仓储层
-	userRepo := repository.NewUserRepository(db)
-
-	// 初始化服务层
-	authService := service.NewAuthService(userRepo)
-	userService := service.NewUserService(userRepo)
-
-	// 初始化处理器
-	authHandler := handler.NewAuthHandler(authService, userService)
-	userHandler := handler.NewUserHandler(userService)
 
 	// 设置Gin模式
-	if cfg.Server.Mode == "release" {
+	if container.Config.Server.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// 创建路由
-	appRouter := router.NewRouter(authHandler, userHandler)
-	ginEngine := appRouter.Setup()
+	ginEngine := container.Router.Setup()
 
 	// 创建HTTP服务器
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
+		Addr:         fmt.Sprintf(":%d", container.Config.Server.Port),
 		Handler:      ginEngine,
-		ReadTimeout:  time.Duration(cfg.Server.ReadTimeout) * time.Second,
-		WriteTimeout: time.Duration(cfg.Server.WriteTimeout) * time.Second,
+		ReadTimeout:  time.Duration(container.Config.Server.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(container.Config.Server.WriteTimeout) * time.Second,
 	}
 
 	// 启动服务器
 	go func() {
-		logger.Info("HTTP服务器启动", logger.Int("port", cfg.Server.Port))
+		logger.Info("HTTP服务器启动", logger.Int("port", container.Config.Server.Port))
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("服务器启动失败", logger.Err(err))
 		}

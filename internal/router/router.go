@@ -4,6 +4,7 @@ import (
 	"go_demo/docs"
 	"go_demo/internal/handler"
 	"go_demo/internal/middleware"
+	"go_demo/internal/utils"
 	"net/http"
 	"time"
 
@@ -17,13 +18,15 @@ type Router struct {
 	engine      *gin.Engine
 	authHandler *handler.AuthHandler
 	userHandler *handler.UserHandler
+	jwtManager  *utils.JWTManager
 }
 
 // NewRouter 创建新的路由管理器
-func NewRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler) *Router {
+func NewRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler, jwtManager *utils.JWTManager) *Router {
 	return &Router{
 		authHandler: authHandler,
 		userHandler: userHandler,
+		jwtManager:  jwtManager,
 	}
 }
 
@@ -98,15 +101,15 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
 		auth.POST("/refresh", r.authHandler.RefreshToken)
-		auth.POST("/logout", middleware.Auth(), r.authHandler.Logout)
-		auth.GET("/profile", middleware.Auth(), r.authHandler.GetProfile)
+		auth.POST("/logout", middleware.Auth(r.jwtManager), r.authHandler.Logout)
+		auth.GET("/profile", middleware.Auth(r.jwtManager), r.authHandler.GetProfile)
 	}
 }
 
 // setupUserRoutes 设置用户路由
 func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
-	users.Use(middleware.Auth()) // 用户相关接口需要JWT认证
+	users.Use(middleware.Auth(r.jwtManager)) // 用户相关接口需要JWT认证
 	{
 		// 用户管理（管理员功能）
 		users.GET("", r.userHandler.GetUsers)

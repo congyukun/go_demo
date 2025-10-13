@@ -21,13 +21,15 @@ type AuthService interface {
 
 // authService 认证服务实现
 type authService struct {
-	userRepo repository.UserRepository
+	userRepo   repository.UserRepository
+	jwtManager *utils.JWTManager
 }
 
 // NewAuthService 创建认证服务实例
-func NewAuthService(userRepo repository.UserRepository) AuthService {
+func NewAuthService(userRepo repository.UserRepository, jwtManager *utils.JWTManager) AuthService {
 	return &authService{
-		userRepo: userRepo,
+		userRepo:   userRepo,
+		jwtManager: jwtManager,
 	}
 }
 
@@ -58,7 +60,7 @@ func (s *authService) Login(req models.LoginRequest) (*models.LoginResponse, err
 	}
 
 	// 生成JWT token
-	token, err := utils.GenerateAccessToken(int64(user.ID), user.Username, "user")
+	token, err := s.jwtManager.GenerateAccessToken(int64(user.ID), user.Username, "user")
 	if err != nil {
 		return nil, fmt.Errorf("生成token失败: %w", err)
 	}
@@ -114,7 +116,7 @@ func (s *authService) ValidateToken(token string) (*models.TokenClaims, error) {
 	}
 
 	// 使用JWT验证token
-	jwtClaims, err := utils.ValidateToken(token)
+	jwtClaims, err := s.jwtManager.ValidateToken(token)
 	if err != nil {
 		return nil, fmt.Errorf("token验证失败: %w", err)
 	}

@@ -38,8 +38,10 @@ type RedisConfig struct {
 	MaxRetries   int    `mapstructure:"max_retries" yaml:"max_retries"`
 }
 
-// 全局配置实例
-var GlobalConfig *Config
+// NewConfig 创建配置实例
+func NewConfig() *Config {
+	return &Config{}
+}
 
 // Load 加载配置文件
 func Load(configPath string) (*Config, error) {
@@ -67,9 +69,6 @@ func Load(configPath string) (*Config, error) {
 		logger.Debug("配置内容", logger.Any("config", config))
 		return nil, fmt.Errorf("配置验证失败: %w", err)
 	}
-
-	// 设置全局配置
-	GlobalConfig = &config
 
 	return &config, nil
 }
@@ -151,73 +150,68 @@ func validateConfig(config *Config) error {
 	return nil
 }
 
-// GetConfig 获取全局配置
-func GetConfig() *Config {
-	return GlobalConfig
-}
-
 // GetServerConfig 获取服务器配置
-func GetServerConfig() ServerConfig {
-	if GlobalConfig == nil {
+func GetServerConfig(cfg *Config) ServerConfig {
+	if cfg == nil {
 		return ServerConfig{}
 	}
-	return GlobalConfig.Server
+	return cfg.Server
 }
 
 // GetDatabaseConfig 获取数据库配置
-func GetDatabaseConfig() database.MySQLConfig {
-	if GlobalConfig == nil {
+func GetDatabaseConfig(cfg *Config) database.MySQLConfig {
+	if cfg == nil {
 		return database.MySQLConfig{}
 	}
-	return GlobalConfig.Database
+	return cfg.Database
 }
 
 // GetJWTConfig 获取JWT配置
-func GetJWTConfig() utils.JWTConfig {
-	if GlobalConfig == nil {
+func GetJWTConfig(cfg *Config) utils.JWTConfig {
+	if cfg == nil {
 		return utils.JWTConfig{}
 	}
-	return GlobalConfig.JWT
+	return cfg.JWT
 }
 
 // GetLogConfig 获取日志配置
-func GetLogConfig() logger.LogConfig {
-	if GlobalConfig == nil {
+func GetLogConfig(cfg *Config) logger.LogConfig {
+	if cfg == nil {
 		return logger.LogConfig{}
 	}
-	return GlobalConfig.Log
+	return cfg.Log
 }
 
 // GetRedisConfig 获取Redis配置
-func GetRedisConfig() RedisConfig {
-	if GlobalConfig == nil {
+func GetRedisConfig(cfg *Config) RedisConfig {
+	if cfg == nil {
 		return RedisConfig{}
 	}
-	return GlobalConfig.Redis
+	return cfg.Redis
 }
 
 // IsProduction 判断是否为生产环境
-func IsProduction() bool {
-	if GlobalConfig == nil {
+func IsProduction(cfg *Config) bool {
+	if cfg == nil {
 		return false
 	}
-	return GlobalConfig.Server.Mode == "release"
+	return cfg.Server.Mode == "release"
 }
 
 // IsDevelopment 判断是否为开发环境
-func IsDevelopment() bool {
-	if GlobalConfig == nil {
+func IsDevelopment(cfg *Config) bool {
+	if cfg == nil {
 		return true
 	}
-	return GlobalConfig.Server.Mode == "debug"
+	return cfg.Server.Mode == "debug"
 }
 
 // IsTest 判断是否为测试环境
-func IsTest() bool {
-	if GlobalConfig == nil {
+func IsTest(cfg *Config) bool {
+	if cfg == nil {
 		return false
 	}
-	return GlobalConfig.Server.Mode == "test"
+	return cfg.Server.Mode == "test"
 }
 
 // LoadFromEnv 从环境变量加载配置（用于容器化部署）
@@ -239,19 +233,10 @@ func LoadFromEnv() (*Config, error) {
 		return nil, fmt.Errorf("配置验证失败Env: %w", err)
 	}
 
-	// 设置全局配置
-	GlobalConfig = &config
-
 	return &config, nil
 }
 
 // ReloadConfig 重新加载配置（热更新）
-func ReloadConfig(configPath string) error {
-	newConfig, err := Load(configPath)
-	if err != nil {
-		return err
-	}
-
-	GlobalConfig = newConfig
-	return nil
+func ReloadConfig(configPath string) (*Config, error) {
+	return Load(configPath)
 }

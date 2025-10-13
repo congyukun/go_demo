@@ -15,13 +15,15 @@ import (
 type AuthHandler struct {
 	authService service.AuthService
 	userService service.UserService
+	jwtManager  *utils.JWTManager
 }
 
 // NewAuthHandler 创建认证处理器实例
-func NewAuthHandler(authService service.AuthService, userService service.UserService) *AuthHandler {
+func NewAuthHandler(authService service.AuthService, userService service.UserService, jwtManager *utils.JWTManager) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		userService: userService,
+		jwtManager:  jwtManager,
 	}
 }
 
@@ -170,7 +172,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	// 验证刷新令牌并生成新的访问令牌
 	// 这里需要从刷新令牌中获取用户信息，然后生成新的访问令牌
-	claims, err := utils.ValidateToken(refreshToken)
+	claims, err := h.jwtManager.ValidateToken(refreshToken)
 	if err != nil {
 		logger.Warn("刷新令牌验证失败",
 			logger.String("request_id", requestID),
@@ -189,7 +191,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	// 生成新的访问令牌（这里需要从数据库获取用户当前角色）
 	// 为了简化，这里假设用户角色为"user"，实际应该查询数据库
-	newAccessToken, err := utils.RefreshAccessToken(refreshToken, "user")
+	newAccessToken, err := h.jwtManager.RefreshAccessToken(refreshToken, "user")
 	if err != nil {
 		logger.Error("生成新访问令牌失败",
 			logger.String("request_id", requestID),
