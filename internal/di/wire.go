@@ -23,6 +23,7 @@ import (
 var baseSet = wire.NewSet(
 	ProvideConfig,
 	ProvideAppInit,
+	ProvideAppReady, // 中间依赖，确保 AppInit 在构造链路中生效
 )
 
 var dataSet = wire.NewSet(
@@ -48,7 +49,7 @@ var handlerSet = wire.NewSet(
 
 var routerSet = wire.NewSet(
 	ProvideRouter,
-	ProvideGinEngine,
+	ProvideGinEngineWithInit, // 在不改外部签名前提下，加入对 appReady 的依赖
 )
 
 // InitializeServer 使用 Wire 构建 Gin Engine 与清理函数

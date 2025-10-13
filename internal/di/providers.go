@@ -51,16 +51,7 @@ type AppInit struct{}
 
 // ProvideAppInit 初始化日志、JWT、验证器等副作用组件
 func ProvideAppInit(cfg *config.Config) (AppInit, error) { // di.ProvideAppInit()
-	logConfig := logger.LogConfig{
-		Level:      cfg.Log.Level,
-		Format:     cfg.Log.Format,
-		OutputPath: cfg.Log.OutputPath,
-		ReqLogPath: cfg.Log.ReqLogPath,
-		MaxSize:    cfg.Log.MaxSize,
-		MaxBackup:  cfg.Log.MaxBackup,
-		MaxAge:     cfg.Log.MaxAge,
-		Compress:   cfg.Log.Compress,
-	}
+	logConfig := cfg.Log
 	if err := logger.Init(logConfig); err != nil {
 		return AppInit{}, err
 	}
@@ -83,9 +74,9 @@ func ProvideDB(cfg *config.Config) (*gorm.DB, error) { // di.ProvideDB()
 	if err != nil {
 		return nil, err
 	}
+	logger.Info("MySQL数据库初始化成功", logger.String("addr", cfg.Database.DSN))
 	return db, nil
 }
-
 // ProvideCache 初始化缓存（统一采用 Redis，不再使用内存回退）
 func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) { // di.ProvideCache()
 	redisCfg := cache.RedisConfig{
@@ -103,6 +94,11 @@ func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) { // di.Prov
 	}
 	logger.Info("Redis缓存初始化成功", logger.String("addr", redisCfg.Addr))
 	return redisCache, nil
+}
+
+// ProvideCacheWithInit 包装缓存 Provider，引入对 appReady 的依赖，保证在日志/JWT/校验器初始化后再创建缓存
+func ProvideCacheWithInit(_ appReady, cfg *config.Config) (cache.CacheInterface, error) { // di.ProvideCacheWithInit()
+	return ProvideCache(cfg)
 }
 
 // ProvideRepositories 初始化仓储
@@ -169,6 +165,19 @@ func ProvideRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHa
 
 // ProvideGinEngine 创建 Gin Engine（调用 Router.Setup）
 func ProvideGinEngine(r *router.Router) *gin.Engine { // di.ProvideGinEngine()
+	return r.Setup()
+}
+
+// ProvideAppReady 作为中间依赖，强制在构造链路中执行 ProvideAppInit
+// 不改变对外签名，通过在 wire.go 中将其纳入依赖图，保证 AppInit 在 Cache/DB 使用前完成
+type appReady struct{}
+
+func ProvideAppReady(_ AppInit) appReady { // di.ProvideAppReady()
+	return appReady{}
+}
+
+// ProvideGinEngineWithInit 在不改变原有签名的前提下，引入对 appReady 的依赖，确保初始化顺序
+func ProvideGinEngineWithInit(_ appReady, r *router.Router) *gin.Engine { // di.ProvideGinEngineWithInit()
 	return r.Setup()
 }
 

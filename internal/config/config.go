@@ -2,22 +2,21 @@ package config
 
 import (
 	"fmt"
-
-	"github.com/spf13/viper"
-
 	"go_demo/internal/utils"
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
+
+	"github.com/spf13/viper"
 )
 
 // Config 应用配置结构
 type Config struct {
-	Server        ServerConfig         `mapstructure:"server" yaml:"server"`
-	Database      database.MySQLConfig `mapstructure:"database" yaml:"database"`
-	JWT           utils.JWTConfig      `mapstructure:"jwt" yaml:"jwt"`
-	Log           logger.LogConfig     `mapstructure:"log" yaml:"log"`
-	Redis         RedisConfig          `mapstructure:"redis" yaml:"redis"`
-	RateLimiter   RateLimiterConfig    `mapstructure:"rate_limiter" yaml:"rate_limiter"`
+	Server         ServerConfig         `mapstructure:"server" yaml:"server"`
+	Database       database.MySQLConfig `mapstructure:"database" yaml:"database"`
+	JWT            utils.JWTConfig      `mapstructure:"jwt" yaml:"jwt"`
+	Log            logger.LogConfig     `mapstructure:"log" yaml:"log"`
+	Redis          RedisConfig          `mapstructure:"redis" yaml:"redis"`
+	RateLimiter    RateLimiterConfig    `mapstructure:"rate_limiter" yaml:"rate_limiter"`
 	CircuitBreaker CircuitBreakerConfig `mapstructure:"circuit_breaker" yaml:"circuit_breaker"`
 }
 
@@ -43,21 +42,21 @@ type RedisConfig struct {
 
 // RateLimiterConfig 限流配置
 type RateLimiterConfig struct {
-	Enabled      bool `mapstructure:"enabled" yaml:"enabled"`
-	GlobalLimit  int  `mapstructure:"global_limit" yaml:"global_limit"`    // 全局限流，单位：请求/秒
-	UserLimit    int  `mapstructure:"user_limit" yaml:"user_limit"`        // 用户限流，单位：请求/分钟
-	IPLimit      int  `mapstructure:"ip_limit" yaml:"ip_limit"`            // IP限流，单位：请求/分钟
-	Window       int  `mapstructure:"window" yaml:"window"`                // 滑动窗口大小，单位：秒
-	Algorithm    string `mapstructure:"algorithm" yaml:"algorithm"`        // 算法类型：fixed, sliding
+	Enabled     bool   `mapstructure:"enabled" yaml:"enabled"`
+	GlobalLimit int    `mapstructure:"global_limit" yaml:"global_limit"` // 全局限流，单位：请求/秒
+	UserLimit   int    `mapstructure:"user_limit" yaml:"user_limit"`     // 用户限流，单位：请求/分钟
+	IPLimit     int    `mapstructure:"ip_limit" yaml:"ip_limit"`         // IP限流，单位：请求/分钟
+	Window      int    `mapstructure:"window" yaml:"window"`             // 滑动窗口大小，单位：秒
+	Algorithm   string `mapstructure:"algorithm" yaml:"algorithm"`       // 算法类型：fixed, sliding
 }
 
 // CircuitBreakerConfig 熔断器配置
 type CircuitBreakerConfig struct {
-	Enabled              bool    `mapstructure:"enabled" yaml:"enabled"`                           // 是否启用熔断器
-	MaxRequests          int     `mapstructure:"max_requests" yaml:"max_requests"`                  // 触发熔断检查的最小请求数
-	HalfOpenMaxRequests  int     `mapstructure:"half_open_max_requests" yaml:"half_open_max_requests"` // 半开状态最大请求数
-	Timeout              int     `mapstructure:"timeout" yaml:"timeout"`                             // 熔断器打开后的超时时间，单位：秒
-	ErrorThreshold       float64 `mapstructure:"error_threshold" yaml:"error_threshold"`             // 错误率阈值（0-1之间）
+	Enabled             bool    `mapstructure:"enabled" yaml:"enabled"`                               // 是否启用熔断器
+	MaxRequests         int     `mapstructure:"max_requests" yaml:"max_requests"`                     // 触发熔断检查的最小请求数
+	HalfOpenMaxRequests int     `mapstructure:"half_open_max_requests" yaml:"half_open_max_requests"` // 半开状态最大请求数
+	Timeout             int     `mapstructure:"timeout" yaml:"timeout"`                               // 熔断器打开后的超时时间，单位：秒
+	ErrorThreshold      float64 `mapstructure:"error_threshold" yaml:"error_threshold"`               // 错误率阈值（0-1之间）
 }
 
 // 全局配置实例
@@ -75,7 +74,7 @@ func Load(configPath string) (*Config, error) {
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
-	
+
 	// 设置环境变量前缀，在读取配置文件之后，确保环境变量优先级更高
 	viper.SetEnvPrefix("GO_DEMO")
 	viper.AutomaticEnv()
@@ -141,18 +140,18 @@ func setDefaults() {
 
 	// 限流默认配置
 	viper.SetDefault("rate_limiter.enabled", true)
-	viper.SetDefault("rate_limiter.global_limit", 1000)    // 全局限流1000请求/秒
-	viper.SetDefault("rate_limiter.user_limit", 100)       // 用户限流100请求/分钟
-	viper.SetDefault("rate_limiter.ip_limit", 200)         // IP限流200请求/分钟
-	viper.SetDefault("rate_limiter.window", 60)            // 滑动窗口60秒
-	viper.SetDefault("rate_limiter.algorithm", "sliding")  // 默认使用滑动窗口算法
+	viper.SetDefault("rate_limiter.global_limit", 1000)   // 全局限流1000请求/秒
+	viper.SetDefault("rate_limiter.user_limit", 100)      // 用户限流100请求/分钟
+	viper.SetDefault("rate_limiter.ip_limit", 200)        // IP限流200请求/分钟
+	viper.SetDefault("rate_limiter.window", 60)           // 滑动窗口60秒
+	viper.SetDefault("rate_limiter.algorithm", "sliding") // 默认使用滑动窗口算法
 
 	// 熔断器默认配置
 	viper.SetDefault("circuit_breaker.enabled", true)
-	viper.SetDefault("circuit_breaker.max_requests", 100)            // 触发熔断检查的最小请求数
-	viper.SetDefault("circuit_breaker.half_open_max_requests", 10)   // 半开状态最大10个请求
-	viper.SetDefault("circuit_breaker.timeout", 30)                  // 超时时间30秒
-	viper.SetDefault("circuit_breaker.error_threshold", 0.5)        // 错误率阈值50%
+	viper.SetDefault("circuit_breaker.max_requests", 100)          // 触发熔断检查的最小请求数
+	viper.SetDefault("circuit_breaker.half_open_max_requests", 10) // 半开状态最大10个请求
+	viper.SetDefault("circuit_breaker.timeout", 30)                // 超时时间30秒
+	viper.SetDefault("circuit_breaker.error_threshold", 0.5)       // 错误率阈值50%
 }
 
 // validateConfig 验证配置
@@ -172,7 +171,6 @@ func validateConfig(config *Config) error {
 	}
 
 	// 验证JWT配置
-	fmt.Printf("Debug - JWT config: %+v\n", config.JWT)
 	if config.JWT.SecretKey == "" {
 		return fmt.Errorf("JWT密钥不能为空")
 	}

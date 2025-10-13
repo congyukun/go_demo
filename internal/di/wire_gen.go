@@ -19,6 +19,11 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	appInit, err := ProvideAppInit(config)
+	if err != nil {
+		return nil, err
+	}
+	diAppReady := ProvideAppReady(appInit)
 	db, err := ProvideDB(config)
 	if err != nil {
 		return nil, err
@@ -35,7 +40,7 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 	rateLimiterFactory := ProvideRateLimiterFactory(config, cacheInterface)
 	circuitBreakerFactory := ProvideCircuitBreakerFactory(config)
 	router := ProvideRouter(authHandler, userHandler, rateLimiterFactory, circuitBreakerFactory)
-	engine := ProvideGinEngine(router)
+	engine := ProvideGinEngineWithInit(diAppReady, router)
 	return engine, nil
 }
 
@@ -45,6 +50,7 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 var baseSet = wire.NewSet(
 	ProvideConfig,
 	ProvideAppInit,
+	ProvideAppReady,
 )
 
 var dataSet = wire.NewSet(
@@ -70,5 +76,5 @@ var handlerSet = wire.NewSet(
 
 var routerSet = wire.NewSet(
 	ProvideRouter,
-	ProvideGinEngine,
+	ProvideGinEngineWithInit,
 )
