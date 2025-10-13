@@ -33,15 +33,13 @@ var dataSet = wire.NewSet(
 )
 
 var serviceSet = wire.NewSet(
-	ProvideServiceConfig,             // 使用配置结构体聚合 service 依赖
-	ProvideAuthServiceWithConfig,     // 基于 ServiceConfig 构建 AuthService
-	ProvideUserServiceWithConfig,     // 基于 ServiceConfig 构建 UserService
+	ProvideAuthService,
+	ProvideUserService,
 )
 
 var handlerSet = wire.NewSet(
-	ProvideHandlerConfig,            // 使用配置结构体聚合 handler 依赖
-	ProvideAuthHandlerWithConfig,    // 基于 HandlerConfig 构建 AuthHandler
-	ProvideUserHandlerWithConfig,    // 基于 HandlerConfig 构建 UserHandler
+	ProvideAuthHandler,
+	ProvideUserHandler,
 )
 
 var routerSet = wire.NewSet(

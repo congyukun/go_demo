@@ -29,12 +29,10 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 		return nil, err
 	}
 	userRepository := ProvideRepositories(db)
-	serviceConfig := ProvideServiceConfig(userRepository)
-	authService := ProvideAuthServiceWithConfig(serviceConfig)
-	userService := ProvideUserServiceWithConfig(serviceConfig)
-	handlerConfig := ProvideHandlerConfig(authService, userService)
-	authHandler := ProvideAuthHandlerWithConfig(handlerConfig)
-	userHandler := ProvideUserHandlerWithConfig(handlerConfig)
+	authService := ProvideAuthService(userRepository)
+	userService := ProvideUserService(userRepository)
+	authHandler := ProvideAuthHandler(authService, userService)
+	userHandler := ProvideUserHandler(userService)
 	router := ProvideRouter(authHandler, userHandler)
 	engine := ProvideGinEngineWithInit(diAppReady, router)
 	return engine, nil
@@ -56,15 +54,13 @@ var dataSet = wire.NewSet(
 )
 
 var serviceSet = wire.NewSet(
-	ProvideServiceConfig,
-	ProvideAuthServiceWithConfig,
-	ProvideUserServiceWithConfig,
+	ProvideAuthService,
+	ProvideUserService,
 )
 
 var handlerSet = wire.NewSet(
-	ProvideHandlerConfig,
-	ProvideAuthHandlerWithConfig,
-	ProvideUserHandlerWithConfig,
+	ProvideAuthHandler,
+	ProvideUserHandler,
 )
 
 var routerSet = wire.NewSet(
