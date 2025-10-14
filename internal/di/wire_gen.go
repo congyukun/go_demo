@@ -13,7 +13,7 @@ import (
 
 // Injectors from wire.go:
 
-// InitializeServer 使用 Wire 构建 Gin Engine 与清理函数
+// InitializeServer 使用 Wire 构建 Gin Engine
 func InitializeServer(configPath string) (*gin.Engine, error) {
 	config, err := ProvideConfig(configPath)
 	if err != nil {
@@ -23,47 +23,59 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	diAppReady := ProvideAppReady(appInit)
 	db, err := ProvideDB(config)
 	if err != nil {
 		return nil, err
 	}
-	userRepository := ProvideRepositories(db)
-	authService := ProvideAuthService(userRepository)
-	userService := ProvideUserService(userRepository)
-	authHandler := ProvideAuthHandler(authService, userService)
-	userHandler := ProvideUserHandler(userService)
-	router := ProvideRouter(authHandler, userHandler)
-	engine := ProvideGinEngineWithInit(diAppReady, router)
+	userRepository := ProvideRepository(db)
+	services := ProvideServices(userRepository)
+	handlers := ProvideHandlers(services)
+	router := ProvideRouter(handlers)
+	engine := ProvideGinEngine(appInit, router)
 	return engine, nil
+}
+
+// InitializeApp 初始化完整应用依赖（可选，用于测试或其他场景）
+func InitializeApp(configPath string) (*AppDependencies, error) {
+	config, err := ProvideConfig(configPath)
+	if err != nil {
+		return nil, err
+	}
+	db, err := ProvideDB(config)
+	if err != nil {
+		return nil, err
+	}
+	cacheInterface, err := ProvideCache(config)
+	if err != nil {
+		return nil, err
+	}
+	userRepository := ProvideRepository(db)
+	services := ProvideServices(userRepository)
+	handlers := ProvideHandlers(services)
+	appDependencies := ProvideAppDependencies(config, db, cacheInterface, userRepository, services, handlers)
+	return appDependencies, nil
 }
 
 // wire.go:
 
-// Sets
-var baseSet = wire.NewSet(
+// 基础设施集合
+var infrastructureSet = wire.NewSet(
 	ProvideConfig,
 	ProvideAppInit,
-	ProvideAppReady,
-)
-
-var dataSet = wire.NewSet(
 	ProvideDB,
 	ProvideCache,
-	ProvideRepositories,
 )
 
-var serviceSet = wire.NewSet(
-	ProvideAuthService,
-	ProvideUserService,
+// 业务逻辑集合
+var businessSet = wire.NewSet(
+	ProvideRepository,
+	ProvideServices,
+	ProvideHandlers,
+	ProvideAppDependencies,
 )
 
-var handlerSet = wire.NewSet(
-	ProvideAuthHandler,
-	ProvideUserHandler,
-)
-
-var routerSet = wire.NewSet(
+// 应用层集合
+var applicationSet = wire.NewSet(
 	ProvideRouter,
-	ProvideGinEngineWithInit,
+	ProvideGinEngine,
 )

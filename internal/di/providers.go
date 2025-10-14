@@ -1,25 +1,15 @@
-// Package di 负责依赖注入各项 Provider 的定义与初始化。
-// 设计要点：
-// 1) ProvideConfig(string) (*config.Config, error) —— 加载配置，所有 Provider 的根依赖。
-// 2) ProvideAppInit(cfg) (AppInit, error) —— 统一完成副作用初始化：logger.Init(cfg.Log)、utils.InitJWT(cfg.JWT)、validator.Init()，并根据 cfg.Server.Mode 设置 Gin 模式。
-// 3) ProvideDB(cfg) (*gorm.DB, error) —— 创建数据库连接。
-// 4) ProvideCache(cfg) (cache.CacheInterface, error) —— 优先 Redis，失败回退内存缓存。
-// 5) ProvideRepositories(db) repository.UserRepository —— 组合仓储层（当前为 UserRepository）。
-// 6) ProvideAuthService(userRepo) / ProvideUserService(userRepo) —— 构建业务服务。
-// 7) ProvideAuthHandler(authSvc, userSvc) / ProvideUserHandler(userSvc) —— 构建 Handler。
-// 8) ProvideRateLimiterFactory(cfg, cache) / ProvideCircuitBreakerFactory(cfg) —— 中间件工厂。
-// 9) ProvideRouter(authHandler, userHandler, rl, cb) *router.Router —— 构建 Router，集中注册中间件与路由分组。
-// 10) ProvideGinEngine(r *router.Router) *gin.Engine —— 调用 r.Setup() 返回最终可用的引擎。
-// Wire 在 internal/di/wire.go 中声明 Sets，并在 wire_gen.go 中生成 InitializeServer 注入器调用这些 Provider。
+// Package di 简洁的依赖注入实现
+// 设计原则：
+// 1. 使用聚合器模式减少 Provider 数量和参数复杂度
+// 2. 保持清晰的分层结构：Config -> Infrastructure -> Business -> Presentation
+// 3. 统一初始化顺序，确保依赖关系正确
 package di
 
 import (
 	"fmt"
 	"go_demo/internal/config"
-	"go_demo/internal/handler"
 	"go_demo/internal/repository"
 	"go_demo/internal/router"
-	"go_demo/internal/service"
 	"go_demo/internal/utils"
 	"go_demo/pkg/cache"
 	"go_demo/pkg/database"
@@ -30,12 +20,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// 统一缓存策略说明：
-// - 项目层面统一采用 Redis 作为缓存实现，启动阶段若 Redis 不可用则启动失败（不再回退至内存）。
-// - 熔断器仍为进程内实现，但其日志与配置通过 DI 注入统一管理。
+// ===== 基础设施层 =====
 
-// ProvideConfig 加载配置
-func ProvideConfig(configPath string) (*config.Config, error) { // di.ProvideConfig()
+// ProvideConfig 加载配置 // di.ProvideConfig()
+func ProvideConfig(configPath string) (*config.Config, error) {
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("加载配置失败: %w", err)
@@ -43,39 +31,44 @@ func ProvideConfig(configPath string) (*config.Config, error) { // di.ProvideCon
 	return cfg, nil
 }
 
-// AppInit 为需要副作用初始化的组件提供统一入口
+// AppInit 应用初始化标记 // di.AppInit
 type AppInit struct{}
 
-// ProvideAppInit 初始化日志、JWT、验证器等副作用组件
-func ProvideAppInit(cfg *config.Config) (AppInit, error) { // di.ProvideAppInit()
-	logConfig := cfg.Log
-	if err := logger.Init(logConfig); err != nil {
-		return AppInit{}, err
+// ProvideAppInit 初始化应用基础组件 // di.ProvideAppInit()
+func ProvideAppInit(cfg *config.Config) (AppInit, error) {
+	// 初始化日志
+	if err := logger.Init(cfg.Log); err != nil {
+		return AppInit{}, fmt.Errorf("日志初始化失败: %w", err)
 	}
+	
 	// 初始化JWT
 	utils.InitJWT(cfg.JWT)
+	
 	// 初始化验证器
 	if err := validator.Init(); err != nil {
-		return AppInit{}, err
+		return AppInit{}, fmt.Errorf("验证器初始化失败: %w", err)
 	}
+	
 	// 设置Gin模式
 	if cfg.Server.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+	
 	return AppInit{}, nil
 }
 
-// ProvideDB 初始化数据库
-func ProvideDB(cfg *config.Config) (*gorm.DB, error) { // di.ProvideDB()
+// ProvideDB 初始化数据库 // di.ProvideDB()
+func ProvideDB(cfg *config.Config) (*gorm.DB, error) {
 	db, err := database.NewMySQL(cfg.Database)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("数据库初始化失败: %w", err)
 	}
 	logger.Info("MySQL数据库初始化成功", logger.String("addr", cfg.Database.DSN))
 	return db, nil
 }
-// ProvideCache 初始化缓存（统一采用 Redis，不再使用内存回退）
-func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) { // di.ProvideCache()
+
+// ProvideCache 初始化缓存 // di.ProvideCache()
+func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) {
 	redisCfg := cache.RedisConfig{
 		Addr:         fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Password:     cfg.Redis.Password,
@@ -84,74 +77,72 @@ func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) { // di.Prov
 		MinIdleConns: cfg.Redis.MinIdleConns,
 		MaxRetries:   cfg.Redis.MaxRetries,
 	}
+	
 	redisCache, err := cache.NewRedisCache(redisCfg)
 	if err != nil {
-		// 统一使用 Redis，直接返回错误以便启动阶段显式失败，避免静默降级
-		return nil, fmt.Errorf("redis缓存初始化失败: %w", err)
+		return nil, fmt.Errorf("Redis缓存初始化失败: %w", err)
 	}
+	
 	logger.Info("Redis缓存初始化成功", logger.String("addr", redisCfg.Addr))
 	return redisCache, nil
 }
 
-// ProvideCacheWithInit 包装缓存 Provider，引入对 appReady 的依赖，保证在日志/JWT/校验器初始化后再创建缓存
-func ProvideCacheWithInit(_ appReady, cfg *config.Config) (cache.CacheInterface, error) { // di.ProvideCacheWithInit()
-	return ProvideCache(cfg)
-}
+// ===== 业务层聚合 =====
 
-// ProvideRepositories 初始化仓储
-func ProvideRepositories(db *gorm.DB) repository.UserRepository { // di.ProvideRepositories()
+// ProvideRepository 初始化仓储层 // di.ProvideRepository()
+func ProvideRepository(db *gorm.DB) repository.UserRepository {
 	return repository.NewUserRepository(db)
 }
 
-// ProvideAuthService 初始化认证服务
-func ProvideAuthService(userRepo repository.UserRepository) service.AuthService { // di.ProvideAuthService()
-	return service.NewAuthService(userRepo)
+// ProvideServices 初始化服务层聚合器 // di.ProvideServices()
+func ProvideServices(repo repository.UserRepository) *Services {
+	return NewServices(repo)
 }
 
-// ProvideUserService 初始化用户服务
-func ProvideUserService(userRepo repository.UserRepository) service.UserService { // di.ProvideUserService()
-	return service.NewUserService(userRepo)
+// ProvideHandlers 初始化处理器层聚合器 // di.ProvideHandlers()
+func ProvideHandlers(services *Services) *Handlers {
+	return NewHandlers(services)
 }
 
-// ProvideAuthHandler 初始化 AuthHandler
-func ProvideAuthHandler(authSvc service.AuthService, userSvc service.UserService) *handler.AuthHandler { // di.ProvideAuthHandler()
-	return handler.NewAuthHandler(authSvc, userSvc)
+// ProvideAppDependencies 初始化应用依赖聚合器 // di.ProvideAppDependencies()
+func ProvideAppDependencies(
+	cfg *config.Config,
+	db *gorm.DB,
+	cache cache.CacheInterface,
+	repo repository.UserRepository,
+	services *Services,
+	handlers *Handlers,
+) *AppDependencies {
+	return &AppDependencies{
+		Config:     cfg,
+		DB:         db,
+		Cache:      cache,
+		Repository: repo,
+		Services:   services,
+		Handlers:   handlers,
+	}
 }
 
-// ProvideUserHandler 初始化 UserHandler
-func ProvideUserHandler(userSvc service.UserService) *handler.UserHandler { // di.ProvideUserHandler()
-	return handler.NewUserHandler(userSvc)
+// ===== 路由层 =====
+
+// ProvideRouter 初始化路由器 // di.ProvideRouter()
+func ProvideRouter(handlers *Handlers) *router.Router {
+	return router.NewRouter(handlers.Auth, handlers.User)
 }
 
-// ProvideRouter 构建 Router 并注册路由
-func ProvideRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler) *router.Router { // di.ProvideRouter()
-	return router.NewRouter(authHandler, userHandler)
-}
-
-// ProvideGinEngine 创建 Gin Engine（调用 Router.Setup）
-func ProvideGinEngine(r *router.Router) *gin.Engine { // di.ProvideGinEngine()
+// ProvideGinEngine 初始化Gin引擎 // di.ProvideGinEngine()
+func ProvideGinEngine(_ AppInit, r *router.Router) *gin.Engine {
 	return r.Setup()
 }
 
-// ProvideAppReady 作为中间依赖，强制在构造链路中执行 ProvideAppInit
-// 不改变对外签名，通过在 wire.go 中将其纳入依赖图，保证 AppInit 在 Cache/DB 使用前完成
-type appReady struct{}
+// ===== 资源清理 =====
 
-func ProvideAppReady(_ AppInit) appReady { // di.ProvideAppReady()
-	return appReady{}
-}
-
-// ProvideGinEngineWithInit 在不改变原有签名的前提下，引入对 appReady 的依赖，确保初始化顺序
-func ProvideGinEngineWithInit(_ appReady, r *router.Router) *gin.Engine { // di.ProvideGinEngineWithInit()
-	return r.Setup()
-}
-
-// ProvideCleanup 组合资源清理函数
-func ProvideCleanup(db *gorm.DB, c cache.CacheInterface) func() { // di.ProvideCleanup()
+// ProvideCleanup 提供资源清理函数 // di.ProvideCleanup()
+func ProvideCleanup(deps *AppDependencies) func() {
 	return func() {
 		// 关闭缓存连接
-		if c != nil {
-			if closer, ok := c.(interface{ Close() error }); ok {
+		if deps.Cache != nil {
+			if closer, ok := deps.Cache.(interface{ Close() error }); ok {
 				if err := closer.Close(); err != nil {
 					logger.Error("关闭缓存连接失败", logger.Err(err))
 				}
@@ -159,8 +150,8 @@ func ProvideCleanup(db *gorm.DB, c cache.CacheInterface) func() { // di.ProvideC
 		}
 
 		// 关闭数据库连接
-		if db != nil {
-			if err := database.Close(db); err != nil {
+		if deps.DB != nil {
+			if err := database.Close(deps.DB); err != nil {
 				logger.Error("关闭数据库连接失败", logger.Err(err))
 			}
 		}

@@ -1,12 +1,5 @@
-// Package di 的 Wire 声明文件（仅在生成器阶段编译）。
-// 说明：
-// - wire.go 使用 //go:build wireinject，使其只在 wire 代码生成时参与编译；实际运行使用 wire_gen.go。
-// - baseSet/dataSet/serviceSet/middlewareSet/handlerSet/routerSet 分层组织 Provider，确保依赖清晰。
-// - InitializeServer(configPath) 声明注入器，Wire 会在 wire_gen.go 中生成具体实现，返回 *gin.Engine。
-// 使用：
-//   1) 安装 wire：go install github.com/google/wire/cmd/wire@latest
-//   2) 生成代码：cd internal/di && wire
-//   3) 启动服务：go build ./cmd/server && ./cmd/server
+// Package di 的 Wire 声明文件（仅在生成器阶段编译）
+// 简化的依赖注入配置，使用聚合器模式减少复杂度
 //go:build wireinject
 // +build wireinject
 
@@ -19,42 +12,44 @@ import (
 	"github.com/google/wire"
 )
 
-// Sets
-var baseSet = wire.NewSet(
+// 基础设施集合
+var infrastructureSet = wire.NewSet(
 	ProvideConfig,
 	ProvideAppInit,
-	ProvideAppReady, // 中间依赖，确保 AppInit 在构造链路中生效
-)
-
-var dataSet = wire.NewSet(
 	ProvideDB,
 	ProvideCache,
-	ProvideRepositories,
 )
 
-var serviceSet = wire.NewSet(
-	ProvideAuthService,
-	ProvideUserService,
+// 业务逻辑集合
+var businessSet = wire.NewSet(
+	ProvideRepository,
+	ProvideServices,
+	ProvideHandlers,
+	ProvideAppDependencies,
 )
 
-var handlerSet = wire.NewSet(
-	ProvideAuthHandler,
-	ProvideUserHandler,
-)
-
-var routerSet = wire.NewSet(
+// 应用层集合
+var applicationSet = wire.NewSet(
 	ProvideRouter,
-	ProvideGinEngineWithInit, // 在不改外部签名前提下，加入对 appReady 的依赖
+	ProvideGinEngine,
 )
 
-// InitializeServer 使用 Wire 构建 Gin Engine 与清理函数
+// InitializeServer 使用 Wire 构建 Gin Engine
 func InitializeServer(configPath string) (*gin.Engine, error) { // di.InitializeServer()
 	wire.Build(
-		baseSet,
-		dataSet,
-		serviceSet,
-		handlerSet,
-		routerSet,
+		infrastructureSet,
+		businessSet,
+		applicationSet,
+	)
+
+	return nil, fmt.Errorf("wire build failed") // 实际由 wire 生成替换
+}
+
+// InitializeApp 初始化完整应用依赖（可选，用于测试或其他场景）
+func InitializeApp(configPath string) (*AppDependencies, error) { // di.InitializeApp()
+	wire.Build(
+		infrastructureSet,
+		businessSet,
 	)
 
 	return nil, fmt.Errorf("wire build failed") // 实际由 wire 生成替换
