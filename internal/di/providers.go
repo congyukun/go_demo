@@ -8,7 +8,6 @@ package di
 import (
 	"fmt"
 	"go_demo/internal/config"
-	"go_demo/internal/repository"
 	"go_demo/internal/router"
 	"go_demo/internal/utils"
 	"go_demo/pkg/cache"
@@ -40,20 +39,20 @@ func ProvideAppInit(cfg *config.Config) (AppInit, error) {
 	if err := logger.Init(cfg.Log); err != nil {
 		return AppInit{}, fmt.Errorf("日志初始化失败: %w", err)
 	}
-	
+
 	// 初始化JWT
 	utils.InitJWT(cfg.JWT)
-	
+
 	// 初始化验证器
 	if err := validator.Init(); err != nil {
 		return AppInit{}, fmt.Errorf("验证器初始化失败: %w", err)
 	}
-	
+
 	// 设置Gin模式
 	if cfg.Server.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	
+
 	return AppInit{}, nil
 }
 
@@ -77,12 +76,12 @@ func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) {
 		MinIdleConns: cfg.Redis.MinIdleConns,
 		MaxRetries:   cfg.Redis.MaxRetries,
 	}
-	
+
 	redisCache, err := cache.NewRedisCache(redisCfg)
 	if err != nil {
-		return nil, fmt.Errorf("Redis缓存初始化失败: %w", err)
+		return nil, fmt.Errorf("redis缓存初始化失败: %w", err)
 	}
-	
+
 	logger.Info("Redis缓存初始化成功", logger.String("addr", redisCfg.Addr))
 	return redisCache, nil
 }
@@ -90,12 +89,12 @@ func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) {
 // ===== 业务层聚合 =====
 
 // ProvideRepository 初始化仓储层 // di.ProvideRepository()
-func ProvideRepository(db *gorm.DB) repository.UserRepository {
-	return repository.NewUserRepository(db)
+func ProvideRepository(db *gorm.DB) *Repository {
+	return NewRepository(db)
 }
 
 // ProvideServices 初始化服务层聚合器 // di.ProvideServices()
-func ProvideServices(repo repository.UserRepository) *Services {
+func ProvideServices(repo *Repository) *Services {
 	return NewServices(repo)
 }
 
@@ -109,7 +108,7 @@ func ProvideAppDependencies(
 	cfg *config.Config,
 	db *gorm.DB,
 	cache cache.CacheInterface,
-	repo repository.UserRepository,
+	repo *Repository,
 	services *Services,
 	handlers *Handlers,
 ) *AppDependencies {

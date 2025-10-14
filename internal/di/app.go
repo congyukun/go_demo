@@ -16,9 +16,14 @@ type AppDependencies struct {
 	Config     *config.Config            // di.AppDependencies.Config
 	DB         *gorm.DB                  // di.AppDependencies.DB
 	Cache      cache.CacheInterface      // di.AppDependencies.Cache
-	Repository repository.UserRepository // di.AppDependencies.Repository
+	Repository *Repository               // di.AppDependencies.Repository
 	Services   *Services                 // di.AppDependencies.Services
 	Handlers   *Handlers                 // di.AppDependencies.Handlers
+}
+
+// Repository 仓储层聚合器 // di.Repository
+type Repository struct {
+	User repository.UserRepository // di.Repository.User
 }
 
 // Services 服务层聚合器 // di.Services
@@ -33,11 +38,18 @@ type Handlers struct {
 	User *handler.UserHandler // di.Handlers.User
 }
 
+// NewRepository 创建仓储聚合器 // di.NewRepository()
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{
+		User: repository.NewUserRepository(db),
+	}
+}
+
 // NewServices 创建服务聚合器 // di.NewServices()
-func NewServices(repo repository.UserRepository) *Services {
+func NewServices(repo *Repository) *Services {
 	return &Services{
-		Auth: service.NewAuthService(repo),
-		User: service.NewUserService(repo),
+		Auth: service.NewAuthService(repo.User),
+		User: service.NewUserService(repo.User),
 	}
 }
 

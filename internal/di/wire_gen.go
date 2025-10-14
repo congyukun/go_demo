@@ -27,8 +27,8 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	userRepository := ProvideRepository(db)
-	services := ProvideServices(userRepository)
+	repository := ProvideRepository(db)
+	services := ProvideServices(repository)
 	handlers := ProvideHandlers(services)
 	router := ProvideRouter(handlers)
 	engine := ProvideGinEngine(appInit, router)
@@ -49,10 +49,10 @@ func InitializeApp(configPath string) (*AppDependencies, error) {
 	if err != nil {
 		return nil, err
 	}
-	userRepository := ProvideRepository(db)
-	services := ProvideServices(userRepository)
+	repository := ProvideRepository(db)
+	services := ProvideServices(repository)
 	handlers := ProvideHandlers(services)
-	appDependencies := ProvideAppDependencies(config, db, cacheInterface, userRepository, services, handlers)
+	appDependencies := ProvideAppDependencies(config, db, cacheInterface, repository, services, handlers)
 	return appDependencies, nil
 }
 
