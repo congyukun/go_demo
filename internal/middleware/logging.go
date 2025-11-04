@@ -3,13 +3,14 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
-	"go_demo/internal/utils"
-	"go_demo/pkg/logger"
 	"io"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+
+	"go_demo/internal/utils"
+	"go_demo/pkg/logger"
 )
 
 // responseWriter 包装gin.ResponseWriter以捕获响应内容
