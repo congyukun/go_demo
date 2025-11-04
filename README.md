@@ -409,7 +409,7 @@ rate_limiter:
 
 如有问题或建议，请：
 - 提交 Issue
-- 发送邮件至维护者
+- 发送邮件至维护者 cunliwakun@163.com
 - 参与讨论
 
 ---
