@@ -25,7 +25,7 @@
 go_demo/
 ├── cmd/                    # 应用程序入口
 │   └── server/
-│       └── main.go        # 主程序入口
+│       └── init.go        # 服务初始化
 ├── internal/              # 内部应用代码
 │   ├── config/           # 配置管理
 │   ├── handler/          # HTTP 处理器（控制器层）
@@ -52,6 +52,7 @@ go_demo/
 ├── go.mod                # Go模块定义
 ├── go.sum               # Go依赖校验
 ├── Makefile             # 构建脚本
+├── main.go              # 主程序入口
 └── API.md               # API使用文档
 ```
 
