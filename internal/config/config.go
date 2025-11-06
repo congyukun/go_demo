@@ -2,11 +2,12 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/spf13/viper"
+
 	"go_demo/internal/utils"
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
-
-	"github.com/spf13/viper"
 )
 
 // Config 应用配置结构
@@ -37,7 +38,6 @@ type RedisConfig struct {
 	MinIdleConns int    `mapstructure:"min_idle_conns" yaml:"min_idle_conns"`
 	MaxRetries   int    `mapstructure:"max_retries" yaml:"max_retries"`
 }
-
 
 // 全局配置实例
 var GlobalConfig *Config
@@ -197,7 +197,6 @@ func GetRedisConfig() RedisConfig {
 	}
 	return GlobalConfig.Redis
 }
-
 
 // IsProduction 判断是否为生产环境
 func IsProduction() bool {

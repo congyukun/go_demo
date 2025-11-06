@@ -68,7 +68,7 @@ PROJECT_NAME=$PROJECT_NAME
 
 # 数据库配置
 MYSQL_ROOT_PASSWORD=123456
-MYSQL_DATABASE=go_test
+MYSQL_DATABASE=go_demo
 MYSQL_USER=demo_user
 MYSQL_PASSWORD=demo_pass
 
@@ -246,7 +246,7 @@ backup_data() {
     mkdir -p "$backup_dir"
     
     # 备份 MySQL 数据
-    docker-compose -f "$COMPOSE_FILE" exec -T mysql mysqldump -u root -p123456 go_test > "$backup_dir/mysql_backup.sql"
+    docker-compose -f "$COMPOSE_FILE" exec -T mysql mysqldump -u root -p123456 go_demo > "$backup_dir/mysql_backup.sql"
     
     # 备份 Redis 数据
     docker-compose -f "$COMPOSE_FILE" exec -T redis redis-cli BGSAVE

@@ -95,7 +95,7 @@ go mod tidy
 
 创建数据库：
 ```sql
-CREATE DATABASE go_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE go_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 修改配置文件 `configs/config.yaml` 中的数据库连接信息。
