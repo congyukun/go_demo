@@ -204,6 +204,11 @@ func Fatalf(template string, args ...interface{}) {
 	GetSugarLogger().Fatalf(template, args...)
 }
 
+// ReqInfo 记录请求信息日志
+func ReqInfo(msg string, fields ...Field) {
+	GetLogger().Info(msg, fields...)
+}
+
 // Sync 同步日志缓冲区
 func Sync() error {
 	if globalLogger != nil {

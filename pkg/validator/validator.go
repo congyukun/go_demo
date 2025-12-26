@@ -169,3 +169,20 @@ func ValidatePassword(password string, minLength int) bool {
 
 	return hasUpper && hasLower && hasDigit
 }
+
+// ValidateStruct 验证结构体
+func ValidateStruct(obj interface{}) error {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		if err := v.Struct(obj); err != nil {
+			// 翻译错误信息
+			errors := TranslateError(err)
+			// 将错误信息组合成字符串
+			var errMsgs []string
+			for _, msg := range errors {
+				errMsgs = append(errMsgs, msg)
+			}
+			return fmt.Errorf("%s", strings.Join(errMsgs, "; "))
+		}
+	}
+	return nil
+}

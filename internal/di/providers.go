@@ -70,7 +70,8 @@ func ProvideDB(cfg *config.Config) (*gorm.DB, error) {
 // ProvideCache 初始化缓存 // di.ProvideCache()
 func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) {
 	redisCfg := cache.RedisConfig{
-		Addr:         fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Host:         cfg.Redis.Host,
+		Port:         cfg.Redis.Port,
 		Password:     cfg.Redis.Password,
 		DB:           cfg.Redis.DB,
 		PoolSize:     cfg.Redis.PoolSize,
@@ -83,7 +84,7 @@ func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) {
 		return nil, fmt.Errorf("redis缓存初始化失败: %w", err)
 	}
 
-	logger.Info("Redis缓存初始化成功", logger.String("addr", redisCfg.Addr))
+	logger.Info("Redis缓存初始化成功", logger.String("addr", fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)))
 	return redisCache, nil
 }
 

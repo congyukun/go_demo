@@ -4,6 +4,10 @@ FROM golang:1.24-alpine AS builder
 # 设置工作目录
 WORKDIR /app
 
+# 设置 Go 代理（国内镜像加速）
+ENV GOPROXY=https://goproxy.cn,direct
+ENV GO111MODULE=on
+
 # 安装必要的包
 RUN apk add --no-cache git ca-certificates tzdata
 
@@ -13,11 +17,11 @@ COPY go.mod go.sum ./
 # 下载依赖
 RUN go mod download
 
-# 复制源代码
+# 复制源代码（包括已生成的 docs 目录和 pkg 目录）
 COPY . .
 
-# 构建应用
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main main.go
+# 构建应用（构建整个模块，而不是单个文件）
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 # 运行阶段
 FROM alpine:latest
