@@ -71,13 +71,17 @@ func (r *Router) setupRoutes() {
 
 // setupHealthRoutes 设置健康检查路由
 func (r *Router) setupHealthRoutes() {
-	// 健康检查路由
-	r.engine.GET("/health", func(c *gin.Context) {
+	// 健康检查处理函数
+	healthHandler := func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
 			"time":   time.Now().Format(time.RFC3339),
 		})
-	})
+	}
+
+	// 健康检查路由 - 支持 GET 和 HEAD 方法
+	r.engine.GET("/health", healthHandler)
+	r.engine.HEAD("/health", healthHandler)
 }
 
 // RouteGroup 定义路由组接口
@@ -108,7 +112,7 @@ func (r *Router) setupAuthRoutes(rg *gin.RouterGroup) {
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/register", r.authHandler.Register)
 		auth.POST("/refresh", r.authHandler.RefreshToken)
-		
+
 		// 需要认证的路由
 		auth.POST("/logout", middleware.JWTAuthMiddleware(), r.authHandler.Logout)
 		auth.GET("/profile", middleware.JWTAuthMiddleware(), r.authHandler.GetProfile)

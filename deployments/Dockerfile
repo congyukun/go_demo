@@ -29,7 +29,6 @@ COPY deployments/wait-for-services.sh ./wait-for-services.sh
 RUN go build -a -installsuffix cgo \
     -ldflags="-w -s -X main.Version=$(git describe --tags --always --dirty 2>/dev/null || echo 'dev') -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     -o main .
-    -o main .
 
 # 运行阶段 - 使用更小的基础镜像
 FROM alpine:3.19
