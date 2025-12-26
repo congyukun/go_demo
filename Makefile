@@ -113,6 +113,8 @@ lint:
 		echo "请先安装 golangci-lint: make install-tools"; \
 	fi
 
+# ==================== Docker 相关命令 ====================
+
 # Docker 构建
 .PHONY: docker-build
 docker-build:
@@ -126,6 +128,45 @@ docker-run:
 	@echo "🐳 运行 Docker 容器..."
 	docker run -p 8080:8080 $(PROJECT_NAME):latest
 
+# 完整部署 (应用 + MySQL + Redis + Nginx)
+.PHONY: docker-deploy
+docker-deploy:
+	@echo "🚀 开始完整部署..."
+	@cd deployments && docker-compose pull
+	@cd deployments && docker-compose build
+	@cd deployments && docker-compose up -d
+	@echo "⏳ 等待服务启动..."
+	@sleep 10
+	@echo "✅ 服务启动完成！"
+	@$(MAKE) docker-info
+
+# 简化部署 (应用 + MySQL + Redis)
+.PHONY: docker-deploy-simple
+docker-deploy-simple:
+	@echo "🚀 开始简化部署..."
+	@cd deployments && docker-compose -f docker-compose.simple.yml pull
+	@cd deployments && docker-compose -f docker-compose.simple.yml build
+	@cd deployments && docker-compose -f docker-compose.simple.yml up -d
+	@echo "⏳ 等待服务启动..."
+	@sleep 10
+	@echo "✅ 服务启动完成！"
+	@$(MAKE) docker-info
+
+# 仅启动依赖服务 (MySQL + Redis)
+.PHONY: docker-deps
+docker-deps:
+	@echo "🔧 启动依赖服务 (MySQL + Redis)..."
+	@cd deployments && docker-compose up -d mysql redis
+	@echo "⏳ 等待服务启动..."
+	@sleep 5
+	@echo "✅ 依赖服务启动完成！"
+	@echo ""
+	@echo "📍 MySQL: localhost:3306"
+	@echo "📍 Redis: localhost:6379"
+	@echo ""
+	@echo "💡 现在可以在本地运行应用："
+	@echo "   go run main.go server --config=./configs/config.dev.yaml"
+
 # Docker Compose 启动
 .PHONY: docker-up
 docker-up:
@@ -137,6 +178,90 @@ docker-up:
 docker-down:
 	@echo "🐳 停止 Docker Compose..."
 	cd deployments && docker-compose down
+
+# 停止所有服务
+.PHONY: docker-stop
+docker-stop:
+	@echo "🛑 停止所有服务..."
+	@cd deployments && docker-compose down 2>/dev/null || true
+	@cd deployments && docker-compose -f docker-compose.simple.yml down 2>/dev/null || true
+	@echo "✅ 所有服务已停止"
+
+# 查看服务状态
+.PHONY: docker-status
+docker-status:
+	@echo "📊 服务状态："
+	@cd deployments && docker-compose ps
+
+# 查看应用日志
+.PHONY: docker-logs
+docker-logs:
+	@echo "📋 应用日志："
+	@cd deployments && docker-compose logs -f app
+
+# 查看所有日志
+.PHONY: docker-logs-all
+docker-logs-all:
+	@echo "📋 所有服务日志："
+	@cd deployments && docker-compose logs -f
+
+# 重启应用
+.PHONY: docker-restart
+docker-restart:
+	@echo "🔄 重启应用..."
+	@cd deployments && docker-compose restart app
+	@echo "✅ 重启完成"
+
+# 重启所有服务
+.PHONY: docker-restart-all
+docker-restart-all:
+	@echo "🔄 重启所有服务..."
+	@cd deployments && docker-compose restart
+	@echo "✅ 重启完成"
+
+# 清理所有数据（危险操作）
+.PHONY: docker-clean
+docker-clean:
+	@echo "⚠️  警告：此操作将删除所有容器、镜像和数据卷！"
+	@echo "⚠️  所有数据库数据将被永久删除！"
+	@read -p "确定要继续吗？(输入 'yes' 确认): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		echo "🧹 停止并删除所有容器..."; \
+		cd deployments && docker-compose down -v; \
+		cd deployments && docker-compose -f docker-compose.simple.yml down -v 2>/dev/null || true; \
+		echo "🗑️  删除应用镜像..."; \
+		docker rmi go-demo:latest 2>/dev/null || true; \
+		docker rmi deployments-app 2>/dev/null || true; \
+		docker rmi deployments_app 2>/dev/null || true; \
+		echo "🧹 清理未使用的资源..."; \
+		docker system prune -f; \
+		echo "✅ 清理完成"; \
+	else \
+		echo "❌ 操作已取消"; \
+	fi
+
+# 显示服务信息
+.PHONY: docker-info
+docker-info:
+	@echo ""
+	@echo "════════════════════════════════════════════════════════"
+	@echo "✅ 服务访问地址："
+	@echo "  • 应用 API:      http://localhost:8080"
+	@echo "  • Nginx 代理:    http://localhost"
+	@echo "  • Swagger 文档:  http://localhost:8080/swagger/index.html"
+	@echo "  • 健康检查:      http://localhost:8080/health"
+	@echo ""
+	@echo "✅ 数据库连接信息："
+	@echo "  • MySQL:         localhost:3306"
+	@echo "  • Redis:         localhost:6379"
+	@echo "════════════════════════════════════════════════════════"
+	@echo ""
+	@echo "💡 测试服务："
+	@echo "   curl http://localhost:8080/health"
+	@echo ""
+	@echo "💡 查看日志："
+	@echo "   make docker-logs"
+	@echo ""
 
 # 生成 API 文档
 .PHONY: docs
@@ -163,27 +288,57 @@ health:
 # 显示帮助信息
 .PHONY: help
 help:
-	@echo "Go Demo 项目 Makefile"
+	@echo "════════════════════════════════════════════════════════"
+	@echo "           Go Demo 项目 Makefile 帮助文档"
+	@echo "════════════════════════════════════════════════════════"
 	@echo ""
-	@echo "可用命令:"
-	@echo "  all           - 执行完整的构建流程 (clean + deps + fmt + vet + test + build)"
-	@echo "  deps          - 安装依赖"
-	@echo "  fmt           - 格式化代码"
-	@echo "  vet           - 代码检查"
-	@echo "  test          - 运行测试"
-	@echo "  test-coverage - 运行测试并生成覆盖率报告"
-	@echo "  build         - 构建应用"
-	@echo "  build-all     - 构建多平台版本"
-	@echo "  run           - 运行应用"
-	@echo "  dev           - 开发模式运行（热重载）"
-	@echo "  clean         - 清理构建文件"
-	@echo "  install-tools - 安装开发工具"
-	@echo "  lint          - 代码质量检查"
-	@echo "  docker-build  - 构建 Docker 镜像"
-	@echo "  docker-run    - 运行 Docker 容器"
-	@echo "  docker-up     - 启动 Docker Compose"
-	@echo "  docker-down   - 停止 Docker Compose"
-	@echo "  docs          - 生成 API 文档"
-	@echo "  migrate       - 数据库迁移"
-	@echo "  health        - 健康检查"
-	@echo "  help          - 显示此帮助信息"
+	@echo "📦 基础命令:"
+	@echo "  all              - 执行完整的构建流程 (clean + deps + fmt + vet + test + build)"
+	@echo "  deps             - 安装依赖"
+	@echo "  fmt              - 格式化代码"
+	@echo "  vet              - 代码检查"
+	@echo "  test             - 运行测试"
+	@echo "  test-coverage    - 运行测试并生成覆盖率报告"
+	@echo "  build            - 构建应用"
+	@echo "  build-all        - 构建多平台版本"
+	@echo "  run              - 运行应用"
+	@echo "  dev              - 开发模式运行（热重载）"
+	@echo "  clean            - 清理构建文件"
+	@echo ""
+	@echo "🛠️  开发工具:"
+	@echo "  install-tools    - 安装开发工具"
+	@echo "  lint             - 代码质量检查"
+	@echo "  docs             - 生成 API 文档"
+	@echo "  migrate          - 数据库迁移"
+	@echo "  health           - 健康检查"
+	@echo ""
+	@echo "🐳 Docker 基础命令:"
+	@echo "  docker-build     - 构建 Docker 镜像"
+	@echo "  docker-run       - 运行 Docker 容器"
+	@echo "  docker-up        - 启动 Docker Compose"
+	@echo "  docker-down      - 停止 Docker Compose"
+	@echo ""
+	@echo "🚀 Docker 快速部署:"
+	@echo "  docker-deploy         - 完整部署 (应用 + MySQL + Redis + Nginx)"
+	@echo "  docker-deploy-simple  - 简化部署 (应用 + MySQL + Redis)"
+	@echo "  docker-deps           - 仅启动依赖服务 (MySQL + Redis)"
+	@echo ""
+	@echo "🔧 Docker 管理命令:"
+	@echo "  docker-stop           - 停止所有服务"
+	@echo "  docker-status         - 查看服务状态"
+	@echo "  docker-logs           - 查看应用日志"
+	@echo "  docker-logs-all       - 查看所有服务日志"
+	@echo "  docker-restart        - 重启应用"
+	@echo "  docker-restart-all    - 重启所有服务"
+	@echo "  docker-clean          - 清理所有数据（危险操作）"
+	@echo "  docker-info           - 显示服务信息"
+	@echo ""
+	@echo "💡 快速开始:"
+	@echo "  1. 完整部署:    make docker-deploy"
+	@echo "  2. 查看状态:    make docker-status"
+	@echo "  3. 查看日志:    make docker-logs"
+	@echo "  4. 健康检查:    make health"
+	@echo "  5. 停止服务:    make docker-stop"
+	@echo ""
+	@echo "  help             - 显示此帮助信息"
+	@echo "════════════════════════════════════════════════════════"
