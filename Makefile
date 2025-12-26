@@ -1,11 +1,11 @@
 # Go Demo 项目 Makefile
 
 # 项目信息
+# 项目信息
 PROJECT_NAME := go-demo
 VERSION := 1.0.0
 BUILD_DIR := bin
-MAIN_PATH := cmd/server/main.go
-
+MAIN_PATH := main.go
 # Go 相关变量
 GOCMD := go
 GOBUILD := $(GOCMD) build

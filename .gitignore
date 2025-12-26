@@ -26,8 +26,13 @@ logs/
 # 配置文件（可能包含敏感信息）
 configs/config.local.yaml
 configs/config.prod.yaml
+configs/config.production.yaml
+configs/*.local.yaml
 .env
 .env.local
+.env.*.local
+.env.production
+.env.prod
 
 # 数据文件
 data/

@@ -23,6 +23,7 @@ import (
 
 // ProvideConfig 加载配置 // di.ProvideConfig()
 func ProvideConfig(configPath string) (*config.Config, error) {
+	// 如果未指定，默认使用 ./configs/config.yaml
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("加载配置失败: %w", err)

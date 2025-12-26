@@ -1,46 +1,51 @@
-# 服务器配置
+# 生产环境配置
+# 注意：生产环境的敏感信息应通过环境变量注入，不要直接写在配置文件中
+
 server:
   port: 8080
-  mode: debug  # debug, release, test
-  read_timeout: 60
-  write_timeout: 60
+  mode: release  # 生产环境使用 release 模式
+  read_timeout: 30
+  write_timeout: 30
   max_header_mb: 1
 
-# 数据库配置
+# 数据库配置 - 生产环境
+# 建议通过环境变量 GO_DEMO_DATABASE_DSN 注入
 database:
   driver: mysql
-  dsn: "root:123456@tcp(localhost:3306)/go_demo?charset=utf8mb4&parseTime=True&loc=Local"
-  max_open_conns: 100
-  max_idle_conns: 10
-  conn_max_lifetime: 3600  # 秒
-  conn_max_idle_time: 1800 # 秒
-  log_mode: true
-  slow_threshold: 200      # 毫秒
+  dsn: "root:123456@tcp(localhost:3306)/go_demo?charset=utf8mb4&parseTime=True&loc=Local"  # 从环境变量读取
+  max_open_conns: 200     # 生产环境增加连接数
+  max_idle_conns: 50
+  conn_max_lifetime: 3600
+  conn_max_idle_time: 1800
+  log_mode: false         # 生产环境关闭详细日志
+  slow_threshold: 500     # 生产环境提高慢查询阈值
 
 # JWT配置
+# 建议通过环境变量 GO_DEMO_JWT_secret_KEY 注入
 jwt:
-  secret_key: "wVvHx4e0ZvJ8a9d6r5t3yu0i9o7p6y4t3r2e1w2q3s4d5f6"
-  access_expire: 3600    # 访问token过期时间（秒）- 1小时
-  refresh_expire: 604800 # 刷新token过期时间（秒）- 7天
-  issuer: "go_demo"
+  secret_key: "wVvHx4e0ZvJ8a9d6r5t3yu0i9o7p6y4t3r2e1w2q3s4d5f6"  # 从环境变量读取
+  access_expire: 7200      # 2小时
+  refresh_expire: 2592000  # 30天
+  issuer: "go_demo_prod"
 
 # 日志配置
 log:
-  level: info            # debug, info, warn, error
-  format: json           # json, console
-  output_path: "./logs/app.log"
-  req_log_path: "./logs/request.log"
-  max_size: 100          # MB
-  max_backup: 10         # 保留文件数
-  max_age: 30            # 保留天数
-  compress: true         # 是否压缩
+  level: warn              # 生产环境使用 warn 级别
+  format: json
+  output_path: "/var/log/go_demo/app.log"
+  req_log_path: "/var/log/go_demo/request.log"
+  max_size: 500            # 生产环境增大日志文件
+  max_backup: 30
+  max_age: 90              # 保留90天
+  compress: true
 
-# Redis配置（可选）
+# Redis配置
+# 建议通过环境变量注入
 redis:
-  host: localhost
+  host: "localhost"
   port: 6379
-  Password: ""
+  Password: ""  # 从环境变量读取
   db: 0
-  pool_size: 10
-  min_idle_conns: 5
+  pool_size: 50            # 生产环境增加连接池
+  min_idle_conns: 10
   max_retries: 3

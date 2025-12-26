@@ -2,12 +2,13 @@ package config
 
 import (
 	"fmt"
-
-	"github.com/spf13/viper"
-
 	"go_demo/internal/utils"
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
+	"os"
+	"strings"
+
+	"github.com/spf13/viper"
 )
 
 // Config 应用配置结构
@@ -55,15 +56,18 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
 
-	// 设置环境变量前缀，在读取配置文件之后，确保环境变量优先级更高
-	viper.SetEnvPrefix("GO_DEMO")
-	viper.AutomaticEnv()
+	// 设置环境变量支持
+	setupEnvBinding()
 
 	// 解析配置
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("解析配置失败: %w", err)
 	}
+
+	// 处理环境变量占位符
+	processEnvPlaceholders(&config)
+
 	// 验证配置
 	if err := validateConfig(&config); err != nil {
 		logger.Debug("配置内容", logger.Any("config", config))
@@ -74,6 +78,68 @@ func Load(configPath string) (*Config, error) {
 	GlobalConfig = &config
 
 	return &config, nil
+}
+
+// LoadByEnv 根据环境变量自动加载对应的配置文件
+func LoadByEnv() (*Config, error) {
+	env := os.Getenv("GO_ENV")
+	if env == "" {
+		env = "dev" // 默认开发环境
+	}
+
+	configPath := fmt.Sprintf("configs/config.%s.yaml", env)
+
+	// 检查配置文件是否存在
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		// 如果特定环境配置不存在，尝试使用默认配置
+		configPath = "configs/config.yaml"
+	}
+
+	logger.Info(fmt.Sprintf("加载配置文件: %s (环境: %s)", configPath, env))
+	return Load(configPath)
+}
+
+// setupEnvBinding 设置环境变量绑定
+func setupEnvBinding() {
+	// 设置环境变量前缀
+	viper.SetEnvPrefix("GO_DEMO")
+	// 自动绑定环境变量
+	viper.AutomaticEnv()
+	// 将配置键中的 . 替换为 _
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// 手动绑定关键配置项到环境变量
+	_ = viper.BindEnv("server.port", "GO_DEMO_SERVER_PORT")
+	_ = viper.BindEnv("server.mode", "GO_DEMO_SERVER_MODE")
+	_ = viper.BindEnv("database.dsn", "GO_DEMO_DATABASE_DSN")
+	_ = viper.BindEnv("jwt.secret_key", "GO_DEMO_JWT_secret_KEY")
+	_ = viper.BindEnv("redis.host", "GO_DEMO_REDIS_HOST")
+	_ = viper.BindEnv("redis.port", "GO_DEMO_REDIS_PORT")
+	_ = viper.BindEnv("redis.Password", "GO_DEMO_REDIS_Password")
+}
+
+// processEnvPlaceholders 处理配置中的环境变量占位符 ${VAR_NAME}
+func processEnvPlaceholders(config *Config) {
+	// 处理数据库 DSN
+	config.Database.DSN = expandEnvVar(config.Database.DSN)
+
+	// 处理 JWT 密钥
+	config.JWT.SecretKey = expandEnvVar(config.JWT.SecretKey)
+
+	// 处理 Redis 配置
+	config.Redis.Host = expandEnvVar(config.Redis.Host)
+	config.Redis.Password = expandEnvVar(config.Redis.Password)
+}
+
+// expandEnvVar 展开环境变量占位符
+func expandEnvVar(value string) string {
+	if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
+		envVar := strings.TrimSuffix(strings.TrimPrefix(value, "${"), "}")
+		if envValue := os.Getenv(envVar); envValue != "" {
+			return envValue
+		}
+	}
+	return value
 }
 
 // setDefaults 设置默认配置值

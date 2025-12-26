@@ -90,36 +90,44 @@ cd go_demo
 ```bash
 go mod tidy
 ```
+### 3. 配置环境
 
-### 3. 配置数据库
+项目支持多环境配置，通过 `--config` 参数指定配置文件：
+
+```bash
+# 复制环境变量示例文件（可选）
+cp .env.example .env
+vim .env
+```
+
+配置文件说明：
+- [`config.yaml`](configs/config.yaml) - 默认配置（Docker/生产环境）
+- [`config.dev.yaml`](configs/config.dev.yaml) - 开发环境配置
+- [`config.test.yaml`](configs/config.test.yaml) - 测试环境配置
+- [`config.prod.yaml`](configs/config.prod.yaml) - 生产环境配置（需自行创建）
+
+详细配置说明请查看 [配置管理完整指南](docs/CONFIG.md)
+
+### 4. 配置数据库
 
 创建数据库：
 ```sql
 CREATE DATABASE go_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-修改配置文件 `configs/config.yaml` 中的数据库连接信息。
-
-### 4. 配置Redis
-
-确保Redis服务已启动，修改配置文件：
-```yaml
-redis:
-  addr: "localhost:6379"
-  password: ""
-  db: 0
-  pool_size: 10
-```
-
 ### 5. 运行应用
 
 ```bash
-# 开发环境运行
-go run cmd/server/main.go
+# 使用默认配置运行
+go run main.go server
+
+# 使用开发环境配置
+go run main.go server --config=./configs/config.dev.yaml
 
 # 或者构建后运行
-go build -o bin/server cmd/server/main.go
-./bin/server
+go build -o go_demo main.go
+./go_demo server --config=./configs/config.dev.yaml
+```
 ```
 
 应用将在 `http://localhost:8080` 启动。
@@ -335,30 +343,62 @@ if err != nil {
 4. 在 `internal/handler` 中实现 HTTP 处理
 5. 在 `cmd/server/main.go` 中注册路由
 
-## 🔧 配置说明
+## 🔧 配置管理
 
-配置文件位于 `configs/config.yaml`，支持以下配置：
+### 多环境配置
 
-- **app**: 应用基础配置
-- **server**: 服务器配置
-- **database**: 数据库配置（支持多种数据库）
-- **redis**: Redis 配置
-- **log**: 日志配置
-- **rate_limit**: 限流配置
+项目支持多环境配置管理，通过 `--config` 参数指定配置文件：
 
-可以通过环境变量 `CONFIG_PATH` 指定配置文件路径。
+```bash
+# 默认配置（不指定参数）
+go run main.go server
 
-### 限流配置示例
+# 开发环境
+go run main.go server --config=./configs/config.dev.yaml
 
-```yaml
-rate_limiter:
-  enabled: true
-  global_limit: 1000
-  user_limit: 100
-  ip_limit: 200
-  window: 60
-  algorithm: "sliding"
+# 测试环境
+go run main.go server --config=./configs/config.test.yaml
+
+# 生产环境
+./go_demo server --config=./configs/config.prod.yaml
 ```
+
+### 配置文件结构
+
+```
+configs/
+├── config.yaml           # Docker 环境默认配置
+├── config.dev.yaml       # 开发环境配置 ✅ 提交
+├── config.test.yaml      # 测试环境配置 ✅ 提交
+├── config.prod.yaml      # 生产环境配置 ❌ 不提交
+└── config.example.yaml   # 配置示例文件 ✅ 提交
+```
+
+### 环境变量支持
+
+所有配置项都支持通过环境变量覆盖，命名规则：`GO_DEMO_<SECTION>_<KEY>`
+
+```bash
+# 覆盖服务器端口
+export GO_DEMO_SERVER_PORT=9090
+
+# 覆盖数据库连接
+export GO_DEMO_DATABASE_DSN="root:pass@tcp(localhost:3306)/go_demo"
+
+# 覆盖 JWT 密钥
+export GO_DEMO_JWT_secret_KEY="your-secret-key"
+```
+
+### 配置优先级
+
+1. **环境变量** - 最高优先级
+2. **配置文件** - 中等优先级
+3. **默认值** - 最低优先级
+
+### 详细文档
+
+- 📖 [配置管理完整指南](docs/CONFIG.md)
+- 📝 [环境变量示例](.env.example)
 
 ## 📊 监控和日志
 
@@ -387,6 +427,10 @@ rate_limiter:
 - [🏗️ 架构文档](docs/ARCHITECTURE.md) - 系统架构详细说明
 - [📊 技术特性](docs/TECH_SUMMARY.md) - 核心特性总结
 - [📖 Swagger指南](docs/SWAGGER_UPDATE.md) - API文档使用指南
+- [⚙️ 配置管理完整指南](docs/CONFIG.md) - 多环境配置详解
+- [📝 改进日志](docs/CHANGELOG.md) - 版本更新和改进记录
+- [🐳 Docker部署指南](docs/DOCKER_GUIDE.md) - Docker部署说明
+- [🌐 Nginx配置指南](docs/NGINX_GUIDE.md) - Nginx反向代理配置
 
 ### 快速导航
 - [API文档](api/openapi.yaml) - OpenAPI 3.0规范
@@ -416,4 +460,6 @@ rate_limiter:
 
 **注意**: 这是一个演示项目，生产环境使用前请进行适当的安全配置和性能优化。
 
-**最近更新**: 2025-10-13 - 新增分布式限流系统和Redis缓存支持
+**最近更新**:
+- 2025-12-26 - 完善多环境配置管理，支持环境变量覆盖
+- 2025-10-13 - 新增分布式限流系统和Redis缓存支持

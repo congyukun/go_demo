@@ -1,9 +1,8 @@
 package logger
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -11,230 +10,204 @@ import (
 )
 
 var (
-	Logger        *zap.Logger
-	SugaredLogger *zap.SugaredLogger
-	ReqLogger     *zap.Logger // 专门用于请求日志的logger
+	globalLogger *zap.Logger
+	sugarLogger  *zap.SugaredLogger
 )
 
 // LogConfig 日志配置
 type LogConfig struct {
-	Level      string `mapstructure:"level" yaml:"level"`
-	Format     string `mapstructure:"format" yaml:"format"`
-	OutputPath string `mapstructure:"output_path" yaml:"output_path"`
-	ReqLogPath string `mapstructure:"req_log_path" yaml:"req_log_path"`
-	MaxSize    int    `mapstructure:"max_size" yaml:"max_size"`
-	MaxBackup  int    `mapstructure:"max_backup" yaml:"max_backup"`
-	MaxAge     int    `mapstructure:"max_age" yaml:"max_age"`
-	Compress   bool   `mapstructure:"compress" yaml:"compress"`
+	Level      string `mapstructure:"level" yaml:"level"`               // 日志级别: debug, info, warn, error
+	Format     string `mapstructure:"format" yaml:"format"`             // 日志格式: json, console
+	OutputPath string `mapstructure:"output_path" yaml:"output_path"`   // 日志输出路径
+	ReqLogPath string `mapstructure:"req_log_path" yaml:"req_log_path"` // 请求日志路径
+	MaxSize    int    `mapstructure:"max_size" yaml:"max_size"`         // 单个日志文件最大大小(MB)
+	MaxBackup  int    `mapstructure:"max_backup" yaml:"max_backup"`     // 保留的旧日志文件数量
+	MaxAge     int    `mapstructure:"max_age" yaml:"max_age"`           // 保留的旧日志文件天数
+	Compress   bool   `mapstructure:"compress" yaml:"compress"`         // 是否压缩旧日志文件
 }
 
-// Init 初始化日志
-func Init(cfg LogConfig) error {
-	// 创建日志目录
-	logDir := filepath.Dir(cfg.OutputPath)
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return fmt.Errorf("创建日志目录失败: %w", err)
-	}
-
-	// 创建请求日志目录
-	if cfg.ReqLogPath != "" {
-		reqLogDir := filepath.Dir(cfg.ReqLogPath)
-		if err := os.MkdirAll(reqLogDir, 0755); err != nil {
-			return fmt.Errorf("创建请求日志目录失败: %w", err)
-		}
-	}
-
+// Init 初始化日志系统
+func Init(config LogConfig) error {
 	// 设置日志级别
-	level := getLogLevel(cfg.Level)
-
-	// 配置编码器
-	var encoderConfig zapcore.EncoderConfig
-	if cfg.Format == "json" {
-		encoderConfig = zap.NewProductionEncoderConfig()
-	} else {
-		encoderConfig = zap.NewDevelopmentEncoderConfig()
-		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder // 彩色输出
+	level := zapcore.InfoLevel
+	switch config.Level {
+	case "debug":
+		level = zapcore.DebugLevel
+	case "info":
+		level = zapcore.InfoLevel
+	case "warn":
+		level = zapcore.WarnLevel
+	case "error":
+		level = zapcore.ErrorLevel
 	}
 
-	// 设置时间格式
-	encoderConfig.TimeKey = "timestamp"
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	// 设置编码器配置
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     customTimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
 
-	// 创建编码器
+	// 设置编码器
 	var encoder zapcore.Encoder
-	if cfg.Format == "json" {
+	if config.Format == "json" {
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	} else {
 		encoder = zapcore.NewConsoleEncoder(encoderConfig)
 	}
 
-	// 配置主日志轮转
-	fileWriter := &lumberjack.Logger{
-		Filename:   cfg.OutputPath,
-		MaxSize:    cfg.MaxSize,   // MB
-		MaxBackups: cfg.MaxBackup, // 保留旧文件的最大个数
-		MaxAge:     cfg.MaxAge,    // 保留旧文件的最大天数
-		Compress:   cfg.Compress,  // 是否压缩/归档旧文件
-		LocalTime:  true,          // 使用本地时间
-	}
+	// 设置日志输出
+	var cores []zapcore.Core
 
-	// 创建写入器
-	consoleWriter := zapcore.AddSync(os.Stdout)
-	fileWriterSync := zapcore.AddSync(fileWriter)
-
-	// 创建核心
-	core := zapcore.NewTee(
-		zapcore.NewCore(encoder, consoleWriter, level),  // 控制台输出
-		zapcore.NewCore(encoder, fileWriterSync, level), // 文件输出
+	// 控制台输出
+	consoleCore := zapcore.NewCore(
+		encoder,
+		zapcore.AddSync(os.Stdout),
+		level,
 	)
+	cores = append(cores, consoleCore)
 
-	// 创建主logger
-	Logger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
-	SugaredLogger = Logger.Sugar()
-
-	// 如果配置了请求日志路径，则创建请求日志logger
-	if cfg.ReqLogPath != "" {
-		// 配置请求日志轮转
-		reqFileWriter := &lumberjack.Logger{
-			Filename:   cfg.ReqLogPath,
-			MaxSize:    cfg.MaxSize,   // MB
-			MaxBackups: cfg.MaxBackup, // 保留旧文件的最大个数
-			MaxAge:     cfg.MaxAge,    // 保留旧文件的最大天数
-			Compress:   cfg.Compress,  // 是否压缩/归档旧文件
-			LocalTime:  true,          // 使用本地时间
+	// 文件输出
+	if config.OutputPath != "" {
+		fileWriter := &lumberjack.Logger{
+			Filename:   config.OutputPath,
+			MaxSize:    config.MaxSize,
+			MaxBackups: config.MaxBackup,
+			MaxAge:     config.MaxAge,
+			Compress:   config.Compress,
 		}
-
-		// 创建请求日志写入器
-		reqFileWriterSync := zapcore.AddSync(reqFileWriter)
-
-		// 创建请求日志核心
-		reqCore := zapcore.NewTee(
-			// zapcore.NewCore(encoder, consoleWriter, level),        // 控制台输出
-			zapcore.NewCore(encoder, reqFileWriterSync, level), // 请求日志文件输出
+		fileCore := zapcore.NewCore(
+			encoder,
+			zapcore.AddSync(fileWriter),
+			level,
 		)
-
-		// 创建请求日志logger
-		ReqLogger = zap.New(reqCore, zap.AddCaller(), zap.AddCallerSkip(1))
+		cores = append(cores, fileCore)
 	}
+
+	// 创建logger
+	core := zapcore.NewTee(cores...)
+	globalLogger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+	sugarLogger = globalLogger.Sugar()
 
 	return nil
 }
 
-// getLogLevel 获取日志级别
-func getLogLevel(levelStr string) zapcore.Level {
-	switch levelStr {
-	case "debug":
-		return zapcore.DebugLevel
-	case "info":
-		return zapcore.InfoLevel
-	case "warn":
-		return zapcore.WarnLevel
-	case "error":
-		return zapcore.ErrorLevel
-	case "dpanic":
-		return zapcore.DPanicLevel
-	case "panic":
-		return zapcore.PanicLevel
-	case "fatal":
-		return zapcore.FatalLevel
-	default:
-		return zapcore.InfoLevel
+// customTimeEncoder 自定义时间格式
+func customTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format("2006-01-02 15:04:05.000"))
+}
+
+// GetLogger 获取全局logger
+func GetLogger() *zap.Logger {
+	if globalLogger == nil {
+		// 如果未初始化，使用默认配置
+		globalLogger, _ = zap.NewProduction()
 	}
+	return globalLogger
 }
 
-// Sync 同步日志缓冲区
-func Sync() {
-	if Logger != nil {
-		Logger.Sync()
+// GetSugarLogger 获取全局sugar logger
+func GetSugarLogger() *zap.SugaredLogger {
+	if sugarLogger == nil {
+		sugarLogger = GetLogger().Sugar()
 	}
+	return sugarLogger
 }
 
-// Close 关闭日志
-func Close() {
-	Sync()
-}
+// Field 日志字段类型
+type Field = zapcore.Field
 
-// 便捷方法
-func Debug(msg string, fields ...zap.Field) {
-	Logger.Debug(msg, fields...)
-}
-
-func Info(msg string, fields ...zap.Field) {
-	Logger.Info(msg, fields...)
-}
-
-func Warn(msg string, fields ...zap.Field) {
-	Logger.Warn(msg, fields...)
-}
-
-func Error(msg string, fields ...zap.Field) {
-	Logger.Error(msg, fields...)
-}
-
-// ReqInfo 请求日志信息级别
-func ReqInfo(msg string, fields ...zap.Field) {
-	if ReqLogger != nil {
-		ReqLogger.Info(msg, fields...)
-	} else {
-		// 如果没有专门的请求日志logger，则使用主logger
-		Info(msg, fields...)
-	}
-}
-
-func Fatal(msg string, fields ...zap.Field) {
-	Logger.Fatal(msg, fields...)
-}
-
-// Sugar方法
-func Debugf(template string, args ...interface{}) {
-	SugaredLogger.Debugf(template, args...)
-}
-
-func Infof(template string, args ...interface{}) {
-	SugaredLogger.Infof(template, args...)
-}
-
-func Warnf(template string, args ...interface{}) {
-	SugaredLogger.Warnf(template, args...)
-}
-
-func Errorf(template string, args ...interface{}) {
-	SugaredLogger.Errorf(template, args...)
-}
-
-func Fatalf(template string, args ...interface{}) {
-	SugaredLogger.Fatalf(template, args...)
-}
-
-// 字段构造函数
-func String(key, val string) zap.Field {
+// 常用字段构造函数
+func String(key, val string) Field {
 	return zap.String(key, val)
 }
 
-func Int(key string, val int) zap.Field {
+func Int(key string, val int) Field {
 	return zap.Int(key, val)
 }
 
-func Int64(key string, val int64) zap.Field {
+func Int64(key string, val int64) Field {
 	return zap.Int64(key, val)
 }
 
-func Float64(key string, val float64) zap.Field {
+func Float64(key string, val float64) Field {
 	return zap.Float64(key, val)
 }
 
-func Bool(key string, val bool) zap.Field {
+func Bool(key string, val bool) Field {
 	return zap.Bool(key, val)
 }
 
-func Any(key string, val interface{}) zap.Field {
+func Any(key string, val interface{}) Field {
 	return zap.Any(key, val)
 }
 
-func Strings(key string, vals []string) zap.Field {
-	return zap.Strings(key, vals)
+func Err(err error) Field {
+	return zap.Error(err)
 }
 
-func Err(err error) zap.Field {
-	return zap.Error(err)
+func Duration(key string, val time.Duration) Field {
+	return zap.Duration(key, val)
+}
+
+// 日志记录函数
+func Debug(msg string, fields ...Field) {
+	GetLogger().Debug(msg, fields...)
+}
+
+func Info(msg string, fields ...Field) {
+	GetLogger().Info(msg, fields...)
+}
+
+func Warn(msg string, fields ...Field) {
+	GetLogger().Warn(msg, fields...)
+}
+
+func Error(msg string, fields ...Field) {
+	GetLogger().Error(msg, fields...)
+}
+
+func Fatal(msg string, fields ...Field) {
+	GetLogger().Fatal(msg, fields...)
+}
+
+func Panic(msg string, fields ...Field) {
+	GetLogger().Panic(msg, fields...)
+}
+
+// Sugar logger 函数
+func Debugf(template string, args ...interface{}) {
+	GetSugarLogger().Debugf(template, args...)
+}
+
+func Infof(template string, args ...interface{}) {
+	GetSugarLogger().Infof(template, args...)
+}
+
+func Warnf(template string, args ...interface{}) {
+	GetSugarLogger().Warnf(template, args...)
+}
+
+func Errorf(template string, args ...interface{}) {
+	GetSugarLogger().Errorf(template, args...)
+}
+
+func Fatalf(template string, args ...interface{}) {
+	GetSugarLogger().Fatalf(template, args...)
+}
+
+// Sync 同步日志缓冲区
+func Sync() error {
+	if globalLogger != nil {
+		return globalLogger.Sync()
+	}
+	return nil
 }
