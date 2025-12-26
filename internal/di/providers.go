@@ -136,6 +136,39 @@ func ProvideGinEngine(_ AppInit, r *router.Router) *gin.Engine {
 	return r.Setup()
 }
 
+// ProvideServerApp 初始化完整的ServerApp（包含清理函数）// di.ProvideServerApp()
+func ProvideServerApp(engine *gin.Engine, deps *AppDependencies) *ServerApp {
+	cleanup := func() {
+		// 关闭缓存连接
+		if deps.Cache != nil {
+			if closer, ok := deps.Cache.(interface{ Close() error }); ok {
+				if err := closer.Close(); err != nil {
+					logger.Error("关闭缓存连接失败", logger.Err(err))
+				} else {
+					logger.Info("缓存连接已关闭")
+				}
+			}
+		}
+
+		// 关闭数据库连接
+		if deps.DB != nil {
+			if err := database.Close(deps.DB); err != nil {
+				logger.Error("关闭数据库连接失败", logger.Err(err))
+			} else {
+				logger.Info("数据库连接已关闭")
+			}
+		}
+
+		// 同步日志
+		logger.Sync()
+	}
+
+	return &ServerApp{
+		Engine:  engine,
+		Cleanup: cleanup,
+	}
+}
+
 // ===== 资源清理 =====
 
 // ProvideCleanup 提供资源清理函数 // di.ProvideCleanup()

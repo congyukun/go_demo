@@ -8,17 +8,24 @@ import (
 	"go_demo/internal/service"
 	"go_demo/pkg/cache"
 
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
+// ServerApp 服务器应用包装器，包含引擎和清理函数
+type ServerApp struct {
+	Engine  *gin.Engine
+	Cleanup func()
+}
+
 // AppDependencies 应用依赖聚合器 // di.AppDependencies
 type AppDependencies struct {
-	Config     *config.Config            // di.AppDependencies.Config
-	DB         *gorm.DB                  // di.AppDependencies.DB
-	Cache      cache.CacheInterface      // di.AppDependencies.Cache
-	Repository *Repository               // di.AppDependencies.Repository
-	Services   *Services                 // di.AppDependencies.Services
-	Handlers   *Handlers                 // di.AppDependencies.Handlers
+	Config     *config.Config       // di.AppDependencies.Config
+	DB         *gorm.DB             // di.AppDependencies.DB
+	Cache      cache.CacheInterface // di.AppDependencies.Cache
+	Repository *Repository          // di.AppDependencies.Repository
+	Services   *Services            // di.AppDependencies.Services
+	Handlers   *Handlers            // di.AppDependencies.Handlers
 }
 
 // Repository 仓储层聚合器 // di.Repository

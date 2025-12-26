@@ -9,6 +9,8 @@ package server
 import (
 	"context"
 	"fmt"
+	"go_demo/internal/di"
+	"go_demo/pkg/logger"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,9 +18,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-
-	"go_demo/internal/di"
-	"go_demo/pkg/logger"
 )
 
 // 全局配置参数
@@ -65,14 +64,38 @@ func init() {
 
 // startServer 启动HTTP服务器
 func startServer() {
-	engine, err := di.InitializeServer(configFile)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to initialize server with wire: %v", err))
+	// 初始化服务器，带重试机制
+	var app *di.ServerApp
+	var err error
+
+	maxRetries := 3
+	retryDelay := 2 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		app, err = di.InitializeServerApp(configFile)
+		if err == nil {
+			break
+		}
+
+		if i < maxRetries-1 {
+			logger.Error("服务器初始化失败，正在重试...",
+				logger.Err(err),
+				logger.Int("retry", i+1),
+				logger.Int("max_retries", maxRetries))
+			time.Sleep(retryDelay)
+			retryDelay *= 2 // 指数退避
+		} else {
+			logger.Fatal("服务器初始化失败，已达最大重试次数", logger.Err(err))
+			os.Exit(1)
+		}
 	}
 
-	// 读取端口与超时配置（从已初始化的日志中输出，但 Gin 引擎内部路由与中间件已通过 Wire 配置好）
-	// 由于 Wire 内部完成了 config.Load，这里通过 expose 的 engine 配置 HTTP 服务器
-	// 注意：Gin 模式在 ProvideLogger/ProvideJWT/ProvideValidator 后由 Router.Setup 统一设置
+	// 注册资源清理函数
+	defer func() {
+		logger.Info("开始清理资源...")
+		app.Cleanup()
+		logger.Info("资源清理完成")
+	}()
 
 	// 创建HTTP服务器
 	serverAddr := ":8080"
@@ -81,38 +104,48 @@ func startServer() {
 	}
 
 	srv := &http.Server{
-		Addr:    serverAddr, // 端口由路由/配置决定；若需严格从配置读取，可在 di.InitializeServer 返回时一并返回 cfg.Server.Port
-		Handler: engine,
-		// 如需严格控制超时，可在 di 中增加 ProvideServerConfig 返回具体值，这里保持与原实现一致的超时策略
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		Addr:           serverAddr,
+		Handler:        app.Engine,
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   30 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1MB
 	}
 
 	// 启动服务器
+	serverErrors := make(chan error, 1)
 	go func() {
-		logger.Info("HTTP服务器启动", logger.String("addr", srv.Addr))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("服务器启动失败", logger.Err(err))
-		}
+		logger.Info("HTTP服务器启动",
+			logger.String("addr", srv.Addr),
+			logger.String("config", configFile))
+		serverErrors <- srv.ListenAndServe()
 	}()
 
-	// 等待中断信号
+	// 等待中断信号或服务器错误
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
 
-	logger.Info("服务器正在关闭...")
+	select {
+	case err := <-serverErrors:
+		if err != nil && err != http.ErrServerClosed {
+			logger.Fatal("服务器运行失败", logger.Err(err))
+		}
+	case sig := <-quit:
+		logger.Info("收到关闭信号", logger.String("signal", sig.String()))
+	}
 
 	// 优雅关闭
+	logger.Info("服务器正在关闭...")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// 关闭HTTP服务器
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Fatal("服务器强制关闭", logger.Err(err))
+		logger.Error("服务器关闭失败", logger.Err(err))
+		// 强制关闭
+		if err := srv.Close(); err != nil {
+			logger.Error("服务器强制关闭失败", logger.Err(err))
+		}
 	}
-
-	// 资源清理由进程退出时的defer或各自组件负责；此处无全局cleanup
 
 	logger.Info("服务器已关闭")
 }

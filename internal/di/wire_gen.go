@@ -35,6 +35,34 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 	return engine, nil
 }
 
+// InitializeServerApp 使用 Wire 构建完整的 ServerApp（包含清理函数）
+func InitializeServerApp(configPath string) (*ServerApp, error) {
+	config, err := ProvideConfig(configPath)
+	if err != nil {
+		return nil, err
+	}
+	appInit, err := ProvideAppInit(config)
+	if err != nil {
+		return nil, err
+	}
+	db, err := ProvideDB(config)
+	if err != nil {
+		return nil, err
+	}
+	repository := ProvideRepository(db)
+	services := ProvideServices(repository)
+	handlers := ProvideHandlers(services)
+	router := ProvideRouter(handlers)
+	engine := ProvideGinEngine(appInit, router)
+	cacheInterface, err := ProvideCache(config)
+	if err != nil {
+		return nil, err
+	}
+	appDependencies := ProvideAppDependencies(config, db, cacheInterface, repository, services, handlers)
+	serverApp := ProvideServerApp(engine, appDependencies)
+	return serverApp, nil
+}
+
 // InitializeApp 初始化完整应用依赖（可选，用于测试或其他场景）
 func InitializeApp(configPath string) (*AppDependencies, error) {
 	config, err := ProvideConfig(configPath)

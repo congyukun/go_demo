@@ -45,6 +45,18 @@ func InitializeServer(configPath string) (*gin.Engine, error) { // di.Initialize
 	return nil, fmt.Errorf("wire build failed") // 实际由 wire 生成替换
 }
 
+// InitializeServerApp 使用 Wire 构建完整的 ServerApp（包含清理函数）
+func InitializeServerApp(configPath string) (*ServerApp, error) { // di.InitializeServerApp()
+	wire.Build(
+		infrastructureSet,
+		businessSet,
+		applicationSet,
+		ProvideServerApp,
+	)
+
+	return nil, fmt.Errorf("wire build failed") // 实际由 wire 生成替换
+}
+
 // InitializeApp 初始化完整应用依赖（可选，用于测试或其他场景）
 func InitializeApp(configPath string) (*AppDependencies, error) { // di.InitializeApp()
 	wire.Build(
