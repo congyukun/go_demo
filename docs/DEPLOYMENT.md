@@ -84,11 +84,13 @@ open http://localhost:8080/swagger/index.html
 ### 方式二：Docker 部署（推荐）
 
 #### 1. 使用 Docker Compose 一键启动
+
+**使用默认配置（生产环境）**：
 ```bash
 # 进入部署目录
 cd deployments
 
-# 启动所有服务（包括应用、MySQL、Redis）
+# 启动所有服务（使用 config.yaml）
 docker-compose -f docker-compose.simple.yml up -d
 
 # 查看服务状态
@@ -96,6 +98,16 @@ docker-compose -f docker-compose.simple.yml ps
 
 # 查看日志
 docker-compose -f docker-compose.simple.yml logs -f app
+```
+
+**使用开发配置**：
+```bash
+# 指定使用开发配置文件
+CONFIG_FILE=config.dev.yaml docker-compose -f docker-compose.simple.yml up -d
+
+# 或使用环境变量
+export CONFIG_FILE=config.dev.yaml
+docker-compose -f docker-compose.simple.yml up -d
 ```
 
 #### 2. 验证服务
