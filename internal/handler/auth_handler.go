@@ -104,27 +104,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if !middleware.ValidateAndBind(c, &req) {
 		return
 	}
-
-	logger.Info("用户注册请求",
-		logger.String("request_id", requestID),
-		logger.String("username", req.Username),
-		logger.String("email", req.Email),
-		logger.String("client_ip", c.ClientIP()),
-	)
-
 	// 调用服务层进行注册
 	user, err := h.authService.Register(c, req)
 	if err != nil {
 		handleServiceError(c, err, requestID)
 		return
 	}
-
-	logger.Info("用户注册成功",
-		logger.String("request_id", requestID),
-		logger.String("username", req.Username),
-		logger.Int("user_id", int(user.ID)),
-		logger.String("client_ip", c.ClientIP()),
-	)
 
 	utils.ResponseSuccess(c, "注册成功", user)
 }

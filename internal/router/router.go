@@ -139,6 +139,8 @@ func (r *Router) setupUserRoutes(rg *gin.RouterGroup) {
 		// 用户自己的操作
 		users.PUT("/profile", r.userHandler.UpdateProfile)
 		users.PUT("/password", r.userHandler.ChangePassword)
+
+		users.POST("/list", r.userHandler.GetUserlist)
 	}
 }
 

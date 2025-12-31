@@ -27,6 +27,7 @@ type UserService interface {
 	SearchUsers(keyword string, limit int) ([]*models.UserResponse, error)
 	GetActiveUsers() ([]*models.UserResponse, error)
 	GetRecentUsers(limit int) ([]*models.UserResponse, error)
+	GetUserlist(page, pageSize int) ([]*models.UserResponse, int64, error)
 
 	// 统计方法
 	GetUserCount() (int64, error)
@@ -43,6 +44,37 @@ func NewUserService(userRepo repository.UserRepository) UserService {
 	return &userService{
 		userRepo: userRepo,
 	}
+}
+
+func (s *userService) GetUserlist(page, pageSize int) ([]*models.UserResponse, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	query := &models.UserQuery{
+		Page: page,
+		Size: pageSize,
+	}
+
+	users, total, err := s.userRepo.GetUserList(query)
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("获取用户列表失败: %w", err)
+	}
+
+	res := make([]*models.UserResponse, len(users))
+
+	for k, user := range users {
+		res[k] = user.ToResponse()
+	}
+
+	return res, total, nil
+
 }
 
 // GetUsers 获取用户列表

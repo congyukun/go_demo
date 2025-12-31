@@ -3,14 +3,13 @@ package handler
 import (
 	"net/http"
 	"strconv"
-
-	"github.com/gin-gonic/gin"
-
 	"go_demo/internal/middleware"
 	"go_demo/internal/models"
 	"go_demo/internal/service"
 	"go_demo/internal/utils"
 	"go_demo/pkg/logger"
+
+	"github.com/gin-gonic/gin"
 )
 
 // UserHandler 用户处理器
@@ -31,6 +30,29 @@ type UserListResponse struct {
 	Total int64                  `json:"total"`
 	Page  int                    `json:"page"`
 	Size  int                    `json:"size"`
+}
+
+
+
+func  (h *UserHandler) GetUserlist(c *gin.Context) {
+	// 获取请求参数
+	requestID := middleware.GetTraceID(c)
+	page, _ := strconv.Atoi(c.DefaultPostForm("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultPostForm("size", "10"))
+
+	userList, total, err := h.userService.GetUserlist(page, pageSize)
+	if err != nil {
+		handleServiceError(c, err, requestID)
+		return
+	}
+
+	res := UserListResponse{
+		Users: userList,
+		Total: total,
+		Page:  page,
+		Size:  pageSize,
+	}
+	utils.ResponseSuccess(c,"获取成功", res)
 }
 
 // GetUsers 获取用户列表

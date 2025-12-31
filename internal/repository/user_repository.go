@@ -39,6 +39,9 @@ type UserRepository interface {
 	// 批量操作
 	BatchUpdateStatus(ids []int, status int) error
 
+	//批量获取用户列表
+	GetUserList(query *models.UserQuery) ([]models.User, int64, error)
+
 	// 事务操作
 	BeginTransaction() *gorm.DB
 }
@@ -53,6 +56,29 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{
 		db: db,
 	}
+}
+
+func (r *userRepository) GetUserList(query *models.UserQuery) ([]models.User, int64, error) {
+	var users []models.User
+	var total int64
+	// 分页查询
+	offset := query.GetOffset()
+	limit := query.GetSize()
+	db := r.db.Model(&models.User{})
+
+	db = db.Where("status=?", 1)
+	db = db.Where("created_at > ?", "2025-12-31 00:00:00")
+
+	// 获取总数
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := db.Limit(limit).Offset(offset).Order("id desc").Find(&users).Error
+	if err != nil {
+		return nil, 0, err
+	}	
+	return  users, total, nil
 }
 
 // Create 创建用户
