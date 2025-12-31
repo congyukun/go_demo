@@ -1,17 +1,16 @@
 package handler
 
 import (
-	"net/http"
-	"strings"
-
-	"github.com/gin-gonic/gin"
-
 	"go_demo/internal/middleware"
 	"go_demo/internal/models"
 	"go_demo/internal/service"
 	"go_demo/internal/utils"
 	"go_demo/pkg/errors"
 	"go_demo/pkg/logger"
+	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 // handleServiceError 统一处理服务层返回的错误
@@ -68,11 +67,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	logger.Info("用户登录请求",
-		logger.String("request_id", requestID),
-		logger.String("username", req.Username),
-		logger.String("client_ip", c.ClientIP()),
-	)
+	// logger.Info("用户登录请求",
+	// 	logger.String("request_id", requestID),
+	// 	logger.String("username", req.Username),
+	// 	logger.String("client_ip", c.ClientIP()),
+	// )
 
 	// 调用服务层进行登录
 	response, err := h.authService.Login(c, req)
@@ -81,12 +80,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	logger.Info("用户登录成功",
-		logger.String("request_id", requestID),
-		logger.String("username", req.Username),
-		logger.Int("user_id", int(response.User.ID)),
-		logger.String("client_ip", c.ClientIP()),
-	)
+	// logger.Info("用户登录成功",
+	// 	logger.String("request_id", requestID),
+	// 	logger.String("username", req.Username),
+	// 	logger.Int("user_id", int(response.User.ID)),
+	// 	logger.String("client_ip", c.ClientIP()),
+	// )
 
 	utils.ResponseSuccess(c, "登录成功", response)
 }

@@ -3,17 +3,16 @@ package service
 import (
 	"crypto/md5"
 	"fmt"
-	"time"
-
-	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
-
 	"go_demo/internal/models"
 	"go_demo/internal/repository"
 	"go_demo/internal/utils"
 	"go_demo/pkg/errors"
 	"go_demo/pkg/logger"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // AuthService 认证服务接口

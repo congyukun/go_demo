@@ -187,12 +187,12 @@ func TestUserDatabase(t *testing.T) {
 		}
 
 		// 测试IsActive方法
-		if !user.IsActive() {
+		if user.IsActive() == 1 {
 			t.Error("状态为1的用户应该是激活的")
 		}
 
 		user.Status = 0
-		if user.IsActive() {
+		if user.IsActive() == 1 {
 			t.Error("状态为0的用户应该是非激活的")
 		}
 

@@ -14,7 +14,7 @@ type User struct {
 	Name        string `gorm:"size:100"`
 	Avatar      string `gorm:"size:255"`
 	Status      int    `gorm:"default:1"`    // 状态：0=禁用，1=启用
-	IsActivated bool   `gorm:"default:true"` // 是否激活
+	IsActivated int   `gorm:"default:1"` // 是否激活
 	LastLogin   *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -37,7 +37,7 @@ func (u *User) ToResponse() *UserResponse {
 }
 
 // IsActive 检查用户是否激活
-func (u *User) IsActive() bool {
+func (u *User) IsActive() int {
 	return u.IsActivated
 }
 

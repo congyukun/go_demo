@@ -17,9 +17,11 @@ exclude_file = []
 # 监听的文件路径
 include_file = []
 # 构建命令
-cmd = "go build -v -o ./tmp/main ./cmd/server"
+cmd = "go build -v -o ./tmp/main ."
 # 构建后运行的命令
 bin = "./tmp/main"
+# 构建后运行的参数（加载开发环境配置）
+full_bin = "./tmp/main server --config=./configs/config.dev.yaml"
 # 构建后延迟运行的时间（毫秒）
 delay = 1000
 # 构建失败时停止运行

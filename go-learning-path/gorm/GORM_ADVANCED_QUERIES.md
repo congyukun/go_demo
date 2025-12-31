@@ -9,7 +9,6 @@ func (r *userRepository) FindActiveUsers() ([]models.User, error) {
     var users []models.User
     err := r.db.
         Where("status = ?", 1).
-        Where("is_activated = ?", true).
         Where("last_login > ?", time.Now().AddDate(0, -1, 0)). // 最近一个月有登录
         Order("last_login DESC").
         Limit(100).

@@ -2,12 +2,11 @@ package service
 
 import (
 	"fmt"
+	"go_demo/internal/models"
+	"go_demo/internal/repository"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-
-	"go_demo/internal/models"
-	"go_demo/internal/repository"
 )
 
 // UserService 用户服务接口

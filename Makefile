@@ -85,7 +85,7 @@ dev:
 		air; \
 	else \
 		echo "请先安装 air: go install github.com/air-verse/air@latest"; \
-		$(GOCMD) run $(MAIN_PATH); \
+		$(GOCMD) run $(MAIN_PATH) server --config=./configs/config.dev.yaml; \
 	fi
 
 # 清理构建文件
