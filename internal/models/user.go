@@ -13,8 +13,8 @@ type User struct {
 	Mobile      string `gorm:"size:20"`           // 手机号
 	Name        string `gorm:"size:100"`
 	Avatar      string `gorm:"size:255"`
-	Status      int    `gorm:"default:1"`    // 状态：0=禁用，1=启用
-	IsActivated int   `gorm:"default:1"` // 是否激活
+	Status      int    `gorm:"default:1"` // 状态：0=禁用，1=启用
+	IsActivated int    `gorm:"default:1"` // 是否激活
 	LastLogin   *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -23,6 +23,10 @@ type User struct {
 
 // ToResponse 转换为响应格式
 func (u *User) ToResponse() *UserResponse {
+	var lastLogin string
+	if u.LastLogin != nil {
+		lastLogin = u.LastLogin.Format("2006-01-02 15:04:05")
+	}
 	return &UserResponse{
 		ID:        u.ID,
 		Username:  u.Username,
@@ -31,8 +35,8 @@ func (u *User) ToResponse() *UserResponse {
 		Name:      u.Name,
 		Avatar:    u.Avatar,
 		Status:    u.Status,
-		LastLogin: u.LastLogin,
-		CreatedAt: u.CreatedAt,
+		LastLogin: lastLogin,
+		CreatedAt: u.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 
@@ -43,15 +47,15 @@ func (u *User) IsActive() int {
 
 // UserResponse 用户响应格式
 type UserResponse struct {
-	ID        uint       `json:"id"`
-	Username  string     `json:"username"`
-	Email     string     `json:"email"`
-	Mobile    string     `json:"mobile"`
-	Name      string     `json:"name"`
-	Avatar    string     `json:"avatar"`
-	Status    int        `json:"status"`
-	LastLogin *time.Time `json:"last_login"`
-	CreatedAt time.Time  `json:"created_at"`
+	ID        uint   `json:"id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Mobile    string `json:"mobile"`
+	Name      string `json:"name"`
+	Avatar    string `json:"avatar"`
+	Status    int    `json:"status"`
+	LastLogin string `json:"last_login"`
+	CreatedAt string `json:"created_at"`
 }
 
 // UserQuery 用户查询参数

@@ -103,14 +103,30 @@ func (s *authService) Login(c *gin.Context, req models.LoginRequest) (*models.Lo
 		return nil, errors.NewInternalServerError("生成刷新token失败").WithCause(err)
 	}
 
-	expiresAt := time.Now().Add(24 * time.Hour)
-	refreshExpiresAt := time.Now().Add(7 * 24 * time.Hour) // 7天
+	// 更新最后登录时间
+	if err := s.userRepo.UpdateLastLogin(user.ID); err != nil {
+		logger.Warn("更新登录时间失败",
+			logger.String("username", req.Username),
+			logger.Int64("user_id", int64(user.ID)),
+			logger.Err(err),
+		)
+		// 不影响登录流程，只记录警告日志
+	}
+
+	// 时间格式化
+	timeFormat := "2006-01-02 15:04:05"
+	expiresAt := time.Now().Add(24 * time.Hour).Format(timeFormat)
+	refreshExpiresAt := time.Now().Add(7 * 24 * time.Hour).Format(timeFormat) // 7天
+
+	// 更新用户对象的登录时间用于返回
+	now := time.Now()
+	user.LastLogin = &now
 
 	response := &models.LoginResponse{
 		Token:            token,
 		RefreshToken:     refreshToken,
 		ExpiresAt:        expiresAt,
-		RefreshExpiresAt: &refreshExpiresAt,
+		RefreshExpiresAt: refreshExpiresAt,
 		User:             *user.ToResponse(),
 	}
 
@@ -161,13 +177,15 @@ func (s *authService) Register(c *gin.Context, req models.RegisterRequest) (*mod
 	}
 
 	// 创建用户
+	now := time.Now()
 	user := &models.User{
-		Username: req.Username,
-		Email:    req.Email,
-		Name:     req.Name,
-		Password: s.hashPassword(req.Password),
-		Status:   1,
-		Mobile:   req.Mobile,
+		Username:  req.Username,
+		Email:     req.Email,
+		Name:      req.Name,
+		Password:  s.hashPassword(req.Password),
+		Status:    1,
+		Mobile:    req.Mobile,
+		LastLogin: &now,
 	}
 
 	// 开始事务
@@ -290,14 +308,16 @@ func (s *authService) RefreshToken(refreshToken string) (*models.LoginResponse, 
 		return nil, errors.NewInternalServerError("生成刷新token失败").WithCause(err)
 	}
 
-	expiresAt := time.Now().Add(24 * time.Hour)
-	refreshExpiresAt := time.Now().Add(7 * 24 * time.Hour) // 7天
+	// 时间格式化
+	timeFormat := "2006-01-02 15:04:05"
+	expiresAt := time.Now().Add(24 * time.Hour).Format(timeFormat)
+	refreshExpiresAt := time.Now().Add(7 * 24 * time.Hour).Format(timeFormat) // 7天
 
 	response := &models.LoginResponse{
 		Token:            token,
 		RefreshToken:     newRefreshToken,
 		ExpiresAt:        expiresAt,
-		RefreshExpiresAt: &refreshExpiresAt,
+		RefreshExpiresAt: refreshExpiresAt,
 		User:             *user.ToResponse(),
 	}
 

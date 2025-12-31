@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -32,8 +30,8 @@ func (r *RegisterRequest) Validate() error {
 type LoginResponse struct {
 	Token            string       `json:"token"`
 	RefreshToken     string       `json:"refresh_token"`
-	ExpiresAt        time.Time    `json:"expires_at"`
-	RefreshExpiresAt *time.Time   `json:"refresh_expires_at"`
+	ExpiresAt        string       `json:"expires_at"`
+	RefreshExpiresAt string       `json:"refresh_expires_at"`
 	User             UserResponse `json:"user"`
 }
 

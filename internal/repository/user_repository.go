@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"gorm.io/gorm"
-
 	"go_demo/internal/models"
+
+	"gorm.io/gorm"
 )
 
 // UserRepository 用户仓储接口
@@ -24,6 +24,7 @@ type UserRepository interface {
 
 	// 状态操作
 	UpdateStatus(id int, status int) error
+	UpdateLastLogin(id uint) error
 
 	// 扩展查询方法
 	SearchUsers(keyword string, limit int) ([]models.User, error)
