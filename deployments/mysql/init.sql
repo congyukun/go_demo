@@ -14,25 +14,26 @@ COLLATE utf8mb4_unicode_ci;
 USE `go_demo`;
 
 -- 创建用户表
-CREATE TABLE IF NOT EXISTS `users` (
+CREATE TABLE `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `created_at` datetime(3) DEFAULT NULL,
-  `updated_at` datetime(3) DEFAULT NULL,
-  `deleted_at` datetime(3) DEFAULT NULL,
-  `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `mobile` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` bigint DEFAULT '1',
-  `role` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'user',
-  `last_login` datetime(3) DEFAULT NULL,
+  `mobile` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '手机号',
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户名',
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '密码',
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '头像',
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '邮件',
+  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态 1:正常 0:禁用',
+  `role` tinyint(1) NOT NULL DEFAULT '1' COMMENT '角色 1:用户 2:管理员',
+  `name` char(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '名字',
+  `is_activated` tinyint(1) unsigned zerofill NOT NULL DEFAULT '1' COMMENT '1:正常 2：封禁',
+  `last_login` timestamp NULL DEFAULT NULL COMMENT '最后登录时间',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_users_username` (`username`),
   UNIQUE KEY `idx_users_email` (`email`),
   KEY `idx_users_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 -- 插入默认管理员用户
 -- 密码: admin123 (bcrypt hash)
 INSERT IGNORE INTO `users` (`username`, `email`, `password`, `mobile`, `status`, `role`, `created_at`, `updated_at`) 
