@@ -6,19 +6,19 @@ import (
 
 // User 用户模型
 type User struct {
-	ID          uint        `gorm:"primarykey"`
-	Username    string      `gorm:"uniqueIndex;size:50;not null"`
-	Email       string      `gorm:"uniqueIndex;size:100;not null"`
-	Password    string      `gorm:"size:255;not null"`              // 存储哈希后的密码
-	Mobile      string      `gorm:"size:20"`                        // 手机号
-	Name        string      `gorm:"size:100"`
-	Avatar      string      `gorm:"size:255"`
-	Status      int         `gorm:"default:1"`                      // 状态：0=禁用，1=启用
-	IsActivated bool        `gorm:"default:true"`                   // 是否激活
+	ID          uint   `gorm:"primarykey"`
+	Username    string `gorm:"uniqueIndex;size:50;not null"`
+	Email       string `gorm:"uniqueIndex;size:100;not null"`
+	Password    string `gorm:"size:255;not null"` // 存储哈希后的密码
+	Mobile      string `gorm:"size:20"`           // 手机号
+	Name        string `gorm:"size:100"`
+	Avatar      string `gorm:"size:255"`
+	Status      int    `gorm:"default:1"`    // 状态：0=禁用，1=启用
+	IsActivated bool   `gorm:"default:true"` // 是否激活
 	LastLogin   *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	DeletedAt   *time.Time  `gorm:"index"`
+	DeletedAt   *time.Time `gorm:"index"`
 }
 
 // ToResponse 转换为响应格式
@@ -56,11 +56,11 @@ type UserResponse struct {
 
 // UserQuery 用户查询参数
 type UserQuery struct {
-	Page     int   `json:"page" form:"page"`
-	Size     int   `json:"size" form:"size"`
+	Page     int    `json:"page" form:"page"`
+	Size     int    `json:"size" form:"size"`
 	Username string `json:"username" form:"username"`
 	Email    string `json:"email" form:"email"`
-	Status   *int  `json:"status" form:"status"`
+	Status   *int   `json:"status" form:"status"`
 }
 
 // GetOffset 获取偏移量
@@ -99,7 +99,7 @@ type ChangePasswordRequest struct {
 // UpdateProfileRequest 更新用户资料请求
 type UpdateProfileRequest struct {
 	Name   string `json:"name" validate:"omitempty,max=100"`
-	Mobile  string `json:"mobile" validate:"omitempty,len=11"`
+	Mobile string `json:"mobile" validate:"omitempty,len=11"`
 	Avatar string `json:"avatar" validate:"omitempty,url"`
 }
 
@@ -114,8 +114,8 @@ type UserCreateRequest struct {
 
 // UserProfileUpdateRequest 更新用户资料请求
 type UserProfileUpdateRequest struct {
-	Email   string `json:"email" validate:"omitempty,email"`
-	Mobile  string `json:"mobile" validate:"omitempty,len=11"`
-	Name    string `json:"name" validate:"omitempty,max=100"`
-	Avatar  string `json:"avatar" validate:"omitempty,url"`
+	Email  string `json:"email" validate:"omitempty,email"`
+	Mobile string `json:"mobile" validate:"omitempty,len=11"`
+	Name   string `json:"name" validate:"omitempty,max=100"`
+	Avatar string `json:"avatar" validate:"omitempty,url"`
 }

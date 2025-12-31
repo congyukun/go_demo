@@ -234,17 +234,17 @@ func (s *userService) UpdateUserProfile(id int, req models.UserProfileUpdateRequ
 	if req.Name != "" {
 		user.Name = req.Name
 	}
-	
+
 	// 更新手机号
 	if req.Mobile != "" {
 		user.Mobile = req.Mobile
 	}
-	
+
 	// 更新头像
 	if req.Avatar != "" {
 		user.Avatar = req.Avatar
 	}
-	
+
 	// 保存更新
 	if err := s.userRepo.Update(user); err != nil {
 		return nil, fmt.Errorf("更新用户失败: %w", err)

@@ -240,6 +240,156 @@ docker-clean:
 		echo "❌ 操作已取消"; \
 	fi
 
+# ==================== Podman 相关命令 ====================
+
+# Podman 构建
+.PHONY: podman-build
+podman-build:
+	@echo "🦭 构建 Podman 镜像..."
+	podman build -f deployments/Dockerfile -t $(PROJECT_NAME):$(VERSION) .
+	podman tag $(PROJECT_NAME):$(VERSION) $(PROJECT_NAME):latest
+
+# Podman 运行
+.PHONY: podman-run
+podman-run:
+	@echo "🦭 运行 Podman 容器..."
+	podman run -p 8080:8080 $(PROJECT_NAME):latest
+
+# Podman Compose 完整部署 (应用 + MySQL + Redis + Nginx)
+.PHONY: podman-deploy
+podman-deploy:
+	@echo "🚀 开始 Podman 完整部署..."
+	@cd deployments && podman compose pull
+	@cd deployments && podman compose build
+	@cd deployments && podman compose up -d
+	@echo "⏳ 等待服务启动..."
+	@sleep 10
+	@echo "✅ 服务启动完成！"
+	@$(MAKE) podman-info
+
+# Podman Compose 简化部署 (应用 + MySQL + Redis)
+.PHONY: podman-deploy-simple
+podman-deploy-simple:
+	@echo "🚀 开始 Podman 简化部署..."
+	@cd deployments && podman compose -f docker-compose.simple.yml pull
+	@cd deployments && podman compose -f docker-compose.simple.yml build
+	@cd deployments && podman compose -f docker-compose.simple.yml up -d
+	@echo "⏳ 等待服务启动..."
+	@sleep 10
+	@echo "✅ 服务启动完成！"
+	@$(MAKE) podman-info
+
+# Podman 仅启动依赖服务 (MySQL + Redis)
+.PHONY: podman-deps
+podman-deps:
+	@echo "🔧 Podman 启动依赖服务 (MySQL + Redis)..."
+	@cd deployments && podman compose up -d mysql redis
+	@echo "⏳ 等待服务启动..."
+	@sleep 5
+	@echo "✅ 依赖服务启动完成！"
+	@echo ""
+	@echo "📍 MySQL: localhost:3306"
+	@echo "📍 Redis: localhost:6379"
+	@echo ""
+	@echo "💡 现在可以在本地运行应用："
+	@echo "   go run main.go server --config=./configs/config.dev.yaml"
+
+# Podman Compose 启动
+.PHONY: podman-up
+podman-up:
+	@echo "🦭 启动 Podman Compose..."
+	cd deployments && podman compose up -d
+
+# Podman Compose 停止
+.PHONY: podman-down
+podman-down:
+	@echo "🦭 停止 Podman Compose..."
+	cd deployments && podman compose down
+
+# Podman 停止所有服务
+.PHONY: podman-stop
+podman-stop:
+	@echo "🛑 Podman 停止所有服务..."
+	@cd deployments && podman compose down 2>/dev/null || true
+	@cd deployments && podman compose -f docker-compose.simple.yml down 2>/dev/null || true
+	@echo "✅ 所有服务已停止"
+
+# Podman 查看服务状态
+.PHONY: podman-status
+podman-status:
+	@echo "📊 Podman 服务状态："
+	@cd deployments && podman compose ps
+
+# Podman 查看应用日志
+.PHONY: podman-logs
+podman-logs:
+	@echo "📋 Podman 应用日志："
+	@cd deployments && podman compose logs -f app
+
+# Podman 查看所有日志
+.PHONY: podman-logs-all
+podman-logs-all:
+	@echo "📋 Podman 所有服务日志："
+	@cd deployments && podman compose logs -f
+
+# Podman 重启应用
+.PHONY: podman-restart
+podman-restart:
+	@echo "🔄 Podman 重启应用..."
+	@cd deployments && podman compose restart app
+	@echo "✅ 重启完成"
+
+# Podman 重启所有服务
+.PHONY: podman-restart-all
+podman-restart-all:
+	@echo "🔄 Podman 重启所有服务..."
+	@cd deployments && podman compose restart
+	@echo "✅ 重启完成"
+
+# Podman 清理所有数据（危险操作）
+.PHONY: podman-clean
+podman-clean:
+	@echo "⚠️  警告：此操作将删除所有容器、镜像和数据卷！"
+	@echo "⚠️  所有数据库数据将被永久删除！"
+	@read -p "确定要继续吗？(输入 'yes' 确认): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		echo "🧹 停止并删除所有容器..."; \
+		cd deployments && podman compose down -v; \
+		cd deployments && podman compose -f docker-compose.simple.yml down -v 2>/dev/null || true; \
+		echo "🗑️  删除应用镜像..."; \
+		podman rmi go-demo:latest 2>/dev/null || true; \
+		podman rmi deployments-app 2>/dev/null || true; \
+		podman rmi deployments_app 2>/dev/null || true; \
+		echo "🧹 清理未使用的资源..."; \
+		podman system prune -f; \
+		echo "✅ 清理完成"; \
+	else \
+		echo "❌ 操作已取消"; \
+	fi
+
+# Podman 显示服务信息
+.PHONY: podman-info
+podman-info:
+	@echo ""
+	@echo "════════════════════════════════════════════════════════"
+	@echo "✅ Podman 服务访问地址："
+	@echo "  • 应用 API:      http://localhost:8080"
+	@echo "  • Nginx 代理:    http://localhost"
+	@echo "  • Swagger 文档:  http://localhost:8080/swagger/index.html"
+	@echo "  • 健康检查:      http://localhost:8080/health"
+	@echo ""
+	@echo "✅ 数据库连接信息："
+	@echo "  • MySQL:         localhost:3306"
+	@echo "  • Redis:         localhost:6379"
+	@echo "════════════════════════════════════════════════════════"
+	@echo ""
+	@echo "💡 测试服务："
+	@echo "   curl http://localhost:8080/health"
+	@echo ""
+	@echo "💡 查看日志："
+	@echo "   make podman-logs"
+	@echo ""
+
 # 显示服务信息
 .PHONY: docker-info
 docker-info:
@@ -333,12 +483,40 @@ help:
 	@echo "  docker-clean          - 清理所有数据（危险操作）"
 	@echo "  docker-info           - 显示服务信息"
 	@echo ""
-	@echo "💡 快速开始:"
+	@echo "🦭 Podman 基础命令:"
+	@echo "  podman-build     - 构建 Podman 镜像"
+	@echo "  podman-run       - 运行 Podman 容器"
+	@echo "  podman-up        - 启动 Podman Compose"
+	@echo "  podman-down      - 停止 Podman Compose"
+	@echo ""
+	@echo "🚀 Podman 快速部署:"
+	@echo "  podman-deploy         - 完整部署 (应用 + MySQL + Redis + Nginx)"
+	@echo "  podman-deploy-simple  - 简化部署 (应用 + MySQL + Redis)"
+	@echo "  podman-deps           - 仅启动依赖服务 (MySQL + Redis)"
+	@echo ""
+	@echo "🔧 Podman 管理命令:"
+	@echo "  podman-stop           - 停止所有服务"
+	@echo "  podman-status         - 查看服务状态"
+	@echo "  podman-logs           - 查看应用日志"
+	@echo "  podman-logs-all       - 查看所有服务日志"
+	@echo "  podman-restart        - 重启应用"
+	@echo "  podman-restart-all    - 重启所有服务"
+	@echo "  podman-clean          - 清理所有数据（危险操作）"
+	@echo "  podman-info           - 显示服务信息"
+	@echo ""
+	@echo "💡 快速开始 (Docker):"
 	@echo "  1. 完整部署:    make docker-deploy"
 	@echo "  2. 查看状态:    make docker-status"
 	@echo "  3. 查看日志:    make docker-logs"
 	@echo "  4. 健康检查:    make health"
 	@echo "  5. 停止服务:    make docker-stop"
+	@echo ""
+	@echo "💡 快速开始 (Podman):"
+	@echo "  1. 完整部署:    make podman-deploy"
+	@echo "  2. 查看状态:    make podman-status"
+	@echo "  3. 查看日志:    make podman-logs"
+	@echo "  4. 健康检查:    make health"
+	@echo "  5. 停止服务:    make podman-stop"
 	@echo ""
 	@echo "  help             - 显示此帮助信息"
 	@echo "════════════════════════════════════════════════════════"

@@ -370,4 +370,3 @@ func (s *authService) verifyPassword(password, hashedPassword string) bool {
 
 	return false
 }
-

@@ -45,7 +45,7 @@ var db *gorm.DB
 
 func initDB() {
 	dsn := "user:password@tcp(127.0.0.1:3306)/gorm_demo?charset=utf8mb4&parseTime=True&loc=Local"
-	
+
 	var err error
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info), // 开启SQL日志
@@ -116,7 +116,7 @@ func NestedTransaction(userID uint, amounts []float64) error {
 			err := tx.Transaction(func(subTx *gorm.DB) error {
 				return processSingleTransaction(subTx, userID, amount, i+1)
 			})
-			
+
 			if err != nil {
 				return err // 任何一个失败都会回滚整个事务
 			}
@@ -274,7 +274,7 @@ func main() {
 		Email:    "test@example.com",
 		Balance:  1000.00,
 	}
-	
+
 	if err := db.Create(testUser).Error; err != nil {
 		log.Fatal("创建测试用户失败:", err)
 	}

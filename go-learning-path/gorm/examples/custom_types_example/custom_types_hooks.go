@@ -29,12 +29,12 @@ func (j *JSONMap) Scan(value interface{}) error {
 		*j = nil
 		return nil
 	}
-	
+
 	bytes, ok := value.([]byte)
 	if !ok {
 		return fmt.Errorf("无法扫描JSON类型: %v", value)
 	}
-	
+
 	var result map[string]interface{}
 	if err := json.Unmarshal(bytes, &result); err != nil {
 		return err
@@ -63,12 +63,12 @@ func (s *UserStatus) Scan(value interface{}) error {
 		*s = StatusInactive
 		return nil
 	}
-	
+
 	str, ok := value.([]byte)
 	if !ok {
 		return fmt.Errorf("无法扫描状态类型: %v", value)
 	}
-	
+
 	*s = UserStatus(str)
 	return nil
 }
@@ -87,17 +87,17 @@ func (t *LocalTime) Scan(value interface{}) error {
 		*t = LocalTime(time.Time{})
 		return nil
 	}
-	
+
 	timeStr, ok := value.([]byte)
 	if !ok {
 		return fmt.Errorf("无法扫描时间类型: %v", value)
 	}
-	
+
 	parsedTime, err := time.Parse("2006-01-02 15:04:05", string(timeStr))
 	if err != nil {
 		return err
 	}
-	
+
 	*t = LocalTime(parsedTime)
 	return nil
 }
@@ -113,12 +113,12 @@ func (t *LocalTime) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &timeStr); err != nil {
 		return err
 	}
-	
+
 	parsedTime, err := time.Parse("2006-01-02 15:04:05", timeStr)
 	if err != nil {
 		return err
 	}
-	
+
 	*t = LocalTime(parsedTime)
 	return nil
 }
@@ -129,11 +129,11 @@ type User struct {
 	Username    string     `gorm:"uniqueIndex;size:50;not null"`
 	Email       string     `gorm:"uniqueIndex;size:100;not null"`
 	Status      UserStatus `gorm:"type:varchar(20);default:'inactive'"`
-	Preferences JSONMap    `gorm:"type:json"` // 使用自定义JSON类型
+	Preferences JSONMap    `gorm:"type:json"`     // 使用自定义JSON类型
 	LastLogin   LocalTime  `gorm:"type:datetime"` // 使用自定义时间类型
 	CreatedAt   time.Time  `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time  `gorm:"autoUpdateTime"`
-	
+
 	// 虚拟字段（不存储到数据库）
 	IsOnline bool `gorm:"-"`
 }
@@ -143,82 +143,82 @@ type User struct {
 // BeforeCreate 创建前的钩子
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	fmt.Printf("准备创建用户: %s\n", u.Username)
-	
+
 	// 设置默认值
 	if u.Status == "" {
 		u.Status = StatusInactive
 	}
-	
+
 	if u.Preferences == nil {
 		u.Preferences = JSONMap{
-			"theme":     "light",
-			"language":  "zh-CN",
+			"theme":         "light",
+			"language":      "zh-CN",
 			"notifications": true,
 		}
 	}
-	
+
 	// 验证逻辑
 	if len(u.Username) < 3 {
 		return fmt.Errorf("用户名长度至少3个字符")
 	}
-	
+
 	return nil
 }
 
 // AfterCreate 创建后的钩子
 func (u *User) AfterCreate(tx *gorm.DB) error {
 	fmt.Printf("用户创建成功: %s (ID: %d)\n", u.Username, u.ID)
-	
+
 	// 可以在这里发送通知、创建相关记录等
 	log.Printf("新用户注册: %s, 邮箱: %s", u.Username, u.Email)
-	
+
 	return nil
 }
 
 // BeforeUpdate 更新前的钩子
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
 	fmt.Printf("准备更新用户: %s\n", u.Username)
-	
+
 	// 验证逻辑
 	if u.Status == StatusBanned {
 		// 检查是否可以封禁用户
 		// 这里可以添加额外的业务逻辑
 	}
-	
+
 	return nil
 }
 
 // AfterUpdate 更新后的钩子
 func (u *User) AfterUpdate(tx *gorm.DB) error {
 	fmt.Printf("用户更新成功: %s\n", u.Username)
-	
+
 	// 记录更新日志等
 	if u.Status == StatusBanned {
 		log.Printf("用户被封禁: %s", u.Username)
 	}
-	
+
 	return nil
 }
 
 // BeforeDelete 删除前的钩子
 func (u *User) BeforeDelete(tx *gorm.DB) error {
 	fmt.Printf("准备删除用户: %s\n", u.Username)
-	
+
 	// 防止误删除重要用户
 	if u.Username == "admin" {
 		return fmt.Errorf("不能删除管理员账户")
 	}
-	
+
 	return nil
 }
 
 // AfterDelete 删除后的钩子
 func (u *User) AfterDelete(tx *gorm.DB) error {
 	fmt.Printf("用户删除成功: %s\n", u.Username)
-	
+
 	// 清理相关数据、发送通知等
 	log.Printf("用户数据已删除: %s", u.Username)
-	
+
 	return nil
 }
 
@@ -245,7 +245,7 @@ var db *gorm.DB
 
 func initDB() {
 	dsn := "user:password@tcp(127.0.0.1:3306)/gorm_custom?charset=utf8mb4&parseTime=True&loc=Local"
-	
+
 	var err error
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -306,11 +306,11 @@ func demoCustomTypes() {
 
 	// 使用自定义方法
 	fmt.Printf("主题偏好: %v\n", foundUser.GetPreference("theme"))
-	
+
 	// 更新偏好设置
 	foundUser.SetPreference("theme", "light")
 	foundUser.SetPreference("font_size", 14)
-	
+
 	if err := db.Save(&foundUser).Error; err != nil {
 		log.Printf("更新用户失败: %v", err)
 		return
@@ -336,7 +336,7 @@ func demoCustomTypes() {
 // 演示钩子函数
 func demoHooks() {
 	fmt.Println("\n=== 演示钩子函数 ===")
-	
+
 	// 创建测试用户
 	testUser := &User{
 		Username: "test_user",
@@ -365,11 +365,11 @@ func demoHooks() {
 
 func main() {
 	initDB()
-	
+
 	fmt.Println("=== 演示自定义数据类型 ===")
 	demoCustomTypes()
-	
+
 	demoHooks()
-	
+
 	fmt.Println("\n演示完成!")
 }
