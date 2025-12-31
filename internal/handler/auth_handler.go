@@ -67,12 +67,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// logger.Info("用户登录请求",
-	// 	logger.String("request_id", requestID),
-	// 	logger.String("username", req.Username),
-	// 	logger.String("client_ip", c.ClientIP()),
-	// )
-
 	// 调用服务层进行登录
 	response, err := h.authService.Login(c, req)
 	if err != nil {
@@ -207,27 +201,13 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		utils.ResponseError(c, http.StatusUnauthorized, "未认证")
 		return
 	}
-
 	userID := userIDInterface.(int64)
-
-	logger.Info("获取用户资料请求",
-		logger.String("request_id", requestID),
-		logger.Int64("user_id", userID),
-		logger.String("client_ip", c.ClientIP()),
-	)
-
 	// 调用用户服务获取用户信息
 	user, err := h.userService.GetUserByID(int(userID))
 	if err != nil {
 		handleServiceError(c, err, requestID)
 		return
 	}
-
-	logger.Info("获取用户资料成功",
-		logger.String("request_id", requestID),
-		logger.Int64("user_id", userID),
-		logger.String("client_ip", c.ClientIP()),
-	)
 
 	utils.ResponseSuccess(c, "获取成功", user)
 }
@@ -253,17 +233,11 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		utils.ResponseError(c, http.StatusBadRequest, "未提供刷新令牌")
 		return
 	}
-
 	// 提取token（去掉Bearer前缀）
 	refreshToken := authHeader
 	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
 		refreshToken = authHeader[7:]
 	}
-
-	logger.Info("刷新令牌请求",
-		logger.String("request_id", requestID),
-		logger.String("client_ip", c.ClientIP()),
-	)
 
 	// 验证刷新令牌并生成新的访问令牌
 	claims, err := utils.ValidateRefreshToken(refreshToken)
@@ -278,12 +252,6 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		handleServiceError(c, err, requestID)
 		return
 	}
-
-	logger.Info("令牌刷新成功",
-		logger.String("request_id", requestID),
-		logger.Int64("user_id", claims.UserID),
-		logger.String("client_ip", c.ClientIP()),
-	)
 
 	response := map[string]interface{}{
 		"access_token": newAccessToken,
