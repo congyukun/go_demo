@@ -77,8 +77,8 @@ func (r *userRepository) GetUserList(query *models.UserQuery) ([]models.User, in
 	err := db.Limit(limit).Offset(offset).Order("id desc").Find(&users).Error
 	if err != nil {
 		return nil, 0, err
-	}	
-	return  users, total, nil
+	}
+	return users, total, nil
 }
 
 // Create 创建用户

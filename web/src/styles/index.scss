@@ -1,0 +1,118 @@
+// 全局样式
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+}
+
+#app {
+  height: 100%;
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #dcdfe6;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f5f7fa;
+}
+
+// 通用类
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mt-10 {
+  margin-top: 10px;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.mb-10 {
+  margin-bottom: 10px;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+
+.ml-10 {
+  margin-left: 10px;
+}
+
+.mr-10 {
+  margin-right: 10px;
+}
+
+// 页面容器
+.page-container {
+  padding: 20px;
+  background-color: #f5f7fa;
+  min-height: calc(100vh - 60px);
+}
+
+// 卡片样式
+.card {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+// 表格操作按钮
+.table-actions {
+  .el-button {
+    padding: 5px 10px;
+  }
+}
+
+// 搜索表单
+.search-form {
+  margin-bottom: 20px;
+  
+  .el-form-item {
+    margin-bottom: 10px;
+  }
+}
+
+// 分页容器
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}

@@ -1,11 +1,15 @@
 # Go Demo 项目 Makefile
+# 前后端分离项目结构
 
-# 项目信息
 # 项目信息
 PROJECT_NAME := go-demo
 VERSION := 1.0.0
-BUILD_DIR := bin
-MAIN_PATH := main.go
+
+# 目录配置
+SERVER_DIR := server
+WEB_DIR := web
+BUILD_DIR := $(SERVER_DIR)/bin
+
 # Go 相关变量
 GOCMD := go
 GOBUILD := $(GOCMD) build
@@ -16,9 +20,6 @@ GOMOD := $(GOCMD) mod
 GOFMT := gofmt
 
 # 构建标志
-LDFLAGS := -ldflags "-X 'main.Version=$(VERSION)' -X 'main.BuildTime=$(shell date '+%Y-%m-%d %H:%M:%S')' -X 'main.GitCommit=$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)'"
-
-# 默认目标
 .PHONY: all
 all: clean deps fmt vet test build
 
@@ -112,6 +113,88 @@ lint:
 	else \
 		echo "请先安装 golangci-lint: make install-tools"; \
 	fi
+
+# ==================== 前端相关命令 ====================
+
+# 检查 npm 是否安装
+.PHONY: check-npm
+check-npm:
+	@command -v npm > /dev/null 2>&1 || { \
+		echo "❌ 错误: npm 未安装"; \
+		echo "请先安装 Node.js: https://nodejs.org/"; \
+		echo "或使用 brew install node (macOS)"; \
+		exit 1; \
+	}
+
+# 安装前端依赖
+.PHONY: web-install
+web-install: check-npm
+	@echo "📦 安装前端依赖..."
+	@cd $(WEB_DIR) && npm install
+
+# 前端开发模式
+.PHONY: web-dev
+web-dev: check-npm
+	@if [ ! -d "$(WEB_DIR)/node_modules" ]; then \
+		echo "⚠️  node_modules 不存在，正在安装依赖..."; \
+		cd $(WEB_DIR) && npm install; \
+	fi
+	@echo "🌐 启动前端开发服务器..."
+	@cd $(WEB_DIR) && npm run dev
+
+# 前端构建
+.PHONY: web-build
+web-build: check-npm
+	@if [ ! -d "$(WEB_DIR)/node_modules" ]; then \
+		echo "⚠️  node_modules 不存在，正在安装依赖..."; \
+		cd $(WEB_DIR) && npm install; \
+	fi
+	@echo "🔨 构建前端..."
+	@cd $(WEB_DIR) && npm run build
+
+# 前端预览
+.PHONY: web-preview
+web-preview: check-npm
+	@echo "👀 预览前端构建..."
+	@cd $(WEB_DIR) && npm run preview
+
+# 前端代码检查
+.PHONY: web-lint
+web-lint: check-npm
+	@echo "🔍 前端代码检查..."
+	@cd $(WEB_DIR) && npm run lint
+
+# 清理前端构建
+.PHONY: web-clean
+web-clean:
+	@echo "🧹 清理前端构建..."
+	@rm -rf $(WEB_DIR)/dist
+	@rm -rf $(WEB_DIR)/node_modules
+
+# ==================== 全栈开发命令 ====================
+
+# 同时启动前后端（开发模式）
+.PHONY: dev-all
+dev-all: check-npm
+	@echo "🚀 启动全栈开发环境..."
+	@echo "📍 后端: http://localhost:8080"
+	@echo "📍 前端: http://localhost:3000"
+	@echo ""
+	@if [ ! -d "$(WEB_DIR)/node_modules" ]; then \
+		echo "⚠️  node_modules 不存在，正在安装依赖..."; \
+		cd $(WEB_DIR) && npm install; \
+	fi
+	@$(MAKE) -j2 dev web-dev
+
+# 安装所有依赖
+.PHONY: install-all
+install-all: deps web-install
+	@echo "✅ 所有依赖安装完成"
+
+# 构建所有
+.PHONY: build-all-stack
+build-all-stack: build web-build
+	@echo "✅ 前后端构建完成"
 
 # ==================== Docker 相关命令 ====================
 
@@ -442,18 +525,31 @@ help:
 	@echo "           Go Demo 项目 Makefile 帮助文档"
 	@echo "════════════════════════════════════════════════════════"
 	@echo ""
-	@echo "📦 基础命令:"
+	@echo "📦 后端基础命令:"
 	@echo "  all              - 执行完整的构建流程 (clean + deps + fmt + vet + test + build)"
-	@echo "  deps             - 安装依赖"
+	@echo "  deps             - 安装后端依赖"
 	@echo "  fmt              - 格式化代码"
 	@echo "  vet              - 代码检查"
 	@echo "  test             - 运行测试"
 	@echo "  test-coverage    - 运行测试并生成覆盖率报告"
-	@echo "  build            - 构建应用"
+	@echo "  build            - 构建后端应用"
 	@echo "  build-all        - 构建多平台版本"
-	@echo "  run              - 运行应用"
-	@echo "  dev              - 开发模式运行（热重载）"
+	@echo "  run              - 运行后端应用"
+	@echo "  dev              - 后端开发模式运行（热重载）"
 	@echo "  clean            - 清理构建文件"
+	@echo ""
+	@echo "🌐 前端命令:"
+	@echo "  web-install      - 安装前端依赖"
+	@echo "  web-dev          - 前端开发模式运行"
+	@echo "  web-build        - 构建前端"
+	@echo "  web-preview      - 预览前端构建"
+	@echo "  web-lint         - 前端代码检查"
+	@echo "  web-clean        - 清理前端构建"
+	@echo ""
+	@echo "🚀 全栈开发命令:"
+	@echo "  dev-all          - 同时启动前后端开发服务器"
+	@echo "  install-all      - 安装所有依赖（前端+后端）"
+	@echo "  build-all-stack  - 构建前后端"
 	@echo ""
 	@echo "🛠️  开发工具:"
 	@echo "  install-tools    - 安装开发工具"

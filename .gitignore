@@ -97,4 +97,4 @@ debug
 debug.test
 
 # 前端
-frontend/node_modules
+web/node_modules

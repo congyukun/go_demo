@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"net/http"
-	"strconv"
 	"go_demo/internal/middleware"
 	"go_demo/internal/models"
 	"go_demo/internal/service"
 	"go_demo/internal/utils"
 	"go_demo/pkg/logger"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,9 +32,7 @@ type UserListResponse struct {
 	Size  int                    `json:"size"`
 }
 
-
-
-func  (h *UserHandler) GetUserlist(c *gin.Context) {
+func (h *UserHandler) GetUserlist(c *gin.Context) {
 	// 获取请求参数
 	requestID := middleware.GetTraceID(c)
 	page, _ := strconv.Atoi(c.DefaultPostForm("page", "1"))
@@ -52,7 +50,7 @@ func  (h *UserHandler) GetUserlist(c *gin.Context) {
 		Page:  page,
 		Size:  pageSize,
 	}
-	utils.ResponseSuccess(c,"获取成功", res)
+	utils.ResponseSuccess(c, "获取成功", res)
 }
 
 // GetUsers 获取用户列表
