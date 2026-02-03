@@ -38,6 +38,15 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err, req, res) => {
+            // 静默处理代理错误，避免启动时后端未就绪的错误日志
+            if (res.writeHead && !res.headersSent) {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ code: 503, message: '后端服务启动中，请稍后重试' }));
+            }
+          });
+        }
       }
     }
   }
