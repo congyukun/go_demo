@@ -70,8 +70,9 @@ go_demo/
 ├── configs/              # 配置文件
 ├── api/                  # API 文档（OpenAPI规范）
 ├── docs/                 # 项目文档
-│   ├── ARCHITECTURE.md   # 架构文档
-│   └── TECH_SUMMARY.md   # 技术特性总结
+│   ├── DEPLOYMENT.md     # 部署文档
+│   ├── DEPLOYMENT_OPTIMIZATION.md  # 部署优化
+│   └── DOCKER_GUIDE.md   # Docker 指南
 ├── scripts/              # 脚本文件（构建、部署、迁移）
 ├── tests/                # 测试文件
 ├── deployments/          # 部署配置（Docker、Nginx）
@@ -146,10 +147,7 @@ vim .env
 配置文件说明：
 - [`config.yaml`](configs/config.yaml) - 默认配置（Docker/生产环境）
 - [`config.dev.yaml`](configs/config.dev.yaml) - 开发环境配置
-- [`config.test.yaml`](configs/config.test.yaml) - 测试环境配置
-- [`config.prod.yaml`](configs/config.prod.yaml) - 生产环境配置（需自行创建）
-
-详细配置说明请查看 [配置管理完整指南](docs/CONFIG.md)
+- [`config.docker.yaml`](configs/config.docker.yaml) - Docker 环境配置
 
 ### 4. 配置数据库
 
@@ -180,6 +178,90 @@ go run main.go server --config=./configs/config.dev.yaml
 # 启动前端（新终端）
 cd web && npm run dev
 ```
+
+## 📋 Makefile 命令参考
+
+> 💡 **提示**: 运行 `make help` 可查看所有可用命令的完整帮助信息
+
+### 基础命令
+
+| 命令 | 描述 |
+|------|------|
+| `make help` | 📖 显示所有命令的帮助信息 |
+| `make deps` | 安装 Go 依赖 |
+| `make fmt` | 格式化代码 |
+| `make vet` | 代码检查 |
+| `make test` | 运行测试 |
+| `make test-coverage` | 生成测试覆盖率报告 |
+| `make build` | 构建应用 |
+| `make build-all` | 构建多平台版本 |
+| `make run` | 运行应用 |
+| `make dev` | 开发模式运行（带热重载） |
+| `make clean` | 清理构建文件 |
+| `make lint` | 代码质量检查 |
+| `make docs` | 生成 API 文档 |
+| `make migrate` | 数据库迁移 |
+| `make health` | 健康检查 |
+| `make install-tools` | 安装开发工具（air, golangci-lint） |
+
+### 前端命令
+
+| 命令 | 描述 |
+|------|------|
+| `make web-install` | 安装前端依赖 |
+| `make web-dev` | 启动前端开发服务器 |
+| `make web-build` | 构建前端 |
+| `make web-preview` | 预览前端构建 |
+| `make web-lint` | 前端代码检查 |
+| `make web-clean` | 清理前端构建 |
+
+### 全栈开发命令
+
+| 命令 | 描述 |
+|------|------|
+| `make dev-all` | 🚀 同时启动前后端开发服务器 |
+| `make install-all` | 安装所有依赖（后端 + 前端） |
+| `make build-all-stack` | 构建前后端 |
+
+### Docker 命令
+
+| 命令 | 描述 |
+|------|------|
+| `make docker-build` | 构建 Docker 镜像 |
+| `make docker-run` | 运行 Docker 容器 |
+| `make docker-deploy` | 完整部署（应用 + MySQL + Redis + Nginx） |
+| `make docker-deploy-simple` | 简化部署（应用 + MySQL + Redis） |
+| `make docker-deps` | 仅启动依赖服务（MySQL + Redis） |
+| `make docker-up` | 启动 Docker Compose |
+| `make docker-down` | 停止 Docker Compose |
+| `make docker-stop` | 停止所有服务 |
+| `make docker-status` | 查看服务状态 |
+| `make docker-logs` | 查看应用日志 |
+| `make docker-logs-all` | 查看所有服务日志 |
+| `make docker-restart` | 重启应用 |
+| `make docker-restart-all` | 重启所有服务 |
+| `make docker-clean` | 清理所有数据（危险操作） |
+| `make docker-info` | 显示服务信息 |
+
+### Podman 命令
+
+| 命令 | 描述 |
+|------|------|
+| `make podman-build` | 构建 Podman 镜像 |
+| `make podman-run` | 运行 Podman 容器 |
+| `make podman-deploy` | Podman 完整部署 |
+| `make podman-deploy-simple` | Podman 简化部署 |
+| `make podman-deps` | Podman 启动依赖服务 |
+| `make podman-up` | 启动 Podman Compose |
+| `make podman-down` | 停止 Podman Compose |
+| `make podman-stop` | 停止所有服务 |
+| `make podman-status` | 查看服务状态 |
+| `make podman-logs` | 查看应用日志 |
+| `make podman-logs-all` | 查看所有服务日志 |
+| `make podman-restart` | 重启应用 |
+| `make podman-restart-all` | 重启所有服务 |
+| `make podman-clean` | 清理所有数据 |
+| `make podman-info` | 显示服务信息 |
 
 服务地址：
 - **后端 API**: http://localhost:8080
@@ -421,11 +503,9 @@ go run main.go server --config=./configs/config.test.yaml
 
 ```
 configs/
-├── config.yaml           # Docker 环境默认配置
+├── config.yaml           # 默认配置
 ├── config.dev.yaml       # 开发环境配置 ✅ 提交
-├── config.test.yaml      # 测试环境配置 ✅ 提交
-├── config.prod.yaml      # 生产环境配置 ❌ 不提交
-└── config.example.yaml   # 配置示例文件 ✅ 提交
+├── config.docker.yaml    # Docker 环境配置 ✅ 提交
 ```
 
 ### 环境变量支持
@@ -448,11 +528,6 @@ export GO_DEMO_JWT_secret_KEY="your-secret-key"
 1. **环境变量** - 最高优先级
 2. **配置文件** - 中等优先级
 3. **默认值** - 最低优先级
-
-### 详细文档
-
-- 📖 [配置管理完整指南](docs/CONFIG.md)
-- 📝 [环境变量示例](.env.example)
 
 ## 📊 监控和日志
 
@@ -478,18 +553,15 @@ export GO_DEMO_JWT_secret_KEY="your-secret-key"
 ## 📖 项目文档
 
 ### 文档索引
-- [🏗️ 架构文档](docs/ARCHITECTURE.md) - 系统架构详细说明
-- [📊 技术特性](docs/TECH_SUMMARY.md) - 核心特性总结
-- [📖 Swagger指南](docs/SWAGGER_UPDATE.md) - API文档使用指南
-- [⚙️ 配置管理完整指南](docs/CONFIG.md) - 多环境配置详解
-- [📝 改进日志](docs/CHANGELOG.md) - 版本更新和改进记录
 - [🐳 Docker部署指南](docs/DOCKER_GUIDE.md) - Docker部署说明
-- [🌐 Nginx配置指南](docs/NGINX_GUIDE.md) - Nginx反向代理配置
+- [🚀 部署文档](docs/DEPLOYMENT.md) - 部署指南
+- [⚡ 部署优化](docs/DEPLOYMENT_OPTIMIZATION.md) - 部署优化建议
 
 ### 快速导航
 - [API文档](api/openapi.yaml) - OpenAPI 3.0规范
+- [Swagger文档](docs/swagger.yaml) - Swagger API 文档
 - [前端项目](web/) - Vue 3 后台管理系统
-- [部署指南](deployments/) - Docker和K8s部署配置
+- [部署配置](deployments/) - Docker 部署配置
 - [测试用例](tests/) - 测试代码和用例
 
 ## 🤝 贡献指南
