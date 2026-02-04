@@ -33,6 +33,22 @@
           />
         </el-form-item>
         
+        <el-form-item prop="captcha">
+          <div class="captcha-wrapper">
+            <el-input
+              v-model="loginForm.captcha"
+              placeholder="请输入验证码"
+              prefix-icon="Picture"
+              size="large"
+              class="captcha-input"
+            />
+            <div class="captcha-image" @click="refreshCaptcha">
+              <img v-if="captchaImage" :src="captchaImage" alt="验证码" />
+              <el-icon v-else class="captcha-loading"><Loading /></el-icon>
+            </div>
+          </div>
+        </el-form-item>
+        
         <el-form-item>
           <el-checkbox v-model="rememberMe">记住我</el-checkbox>
         </el-form-item>
@@ -59,10 +75,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { getCaptcha } from '@/api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -71,10 +89,13 @@ const userStore = useUserStore()
 const loginFormRef = ref(null)
 const loading = ref(false)
 const rememberMe = ref(false)
+const captchaImage = ref('')
+const captchaId = ref('')
 
 const loginForm = reactive({
   username: '',
-  password: ''
+  password: '',
+  captcha: ''
 })
 
 const loginRules = {
@@ -85,8 +106,31 @@ const loginRules = {
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度不能少于 6 个字符', trigger: 'blur' }
+  ],
+  captcha: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { min: 4, max: 6, message: '验证码长度为 4-6 个字符', trigger: 'blur' }
   ]
 }
+
+// 获取验证码
+const refreshCaptcha = async () => {
+  try {
+    const res = await getCaptcha()
+    if (res.data) {
+      captchaId.value = res.data.captcha_id
+      captchaImage.value = res.data.image
+    }
+  } catch (error) {
+    console.error('获取验证码失败:', error)
+    ElMessage.error('获取验证码失败，请刷新重试')
+  }
+}
+
+// 页面加载时获取验证码
+onMounted(() => {
+  refreshCaptcha()
+})
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return
@@ -96,7 +140,12 @@ const handleLogin = async () => {
     
     loading.value = true
     try {
-      await userStore.login(loginForm)
+      // 添加验证码信息到登录请求
+      const loginData = {
+        ...loginForm,
+        captcha_id: captchaId.value
+      }
+      await userStore.login(loginData)
       ElMessage.success('登录成功')
       
       // 跳转到之前的页面或首页
@@ -104,6 +153,9 @@ const handleLogin = async () => {
       router.push(redirect)
     } catch (error) {
       console.error('登录失败:', error)
+      // 登录失败后刷新验证码
+      refreshCaptcha()
+      loginForm.captcha = ''
     } finally {
       loading.value = false
     }
@@ -147,6 +199,54 @@ const handleLogin = async () => {
 .login-form {
   .el-form-item {
     margin-bottom: 20px;
+  }
+}
+
+.captcha-wrapper {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  
+  .captcha-input {
+    flex: 1;
+  }
+  
+  .captcha-image {
+    width: 120px;
+    height: 40px;
+    cursor: pointer;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f7fa;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .captcha-loading {
+      font-size: 20px;
+      color: #909399;
+      animation: rotate 1s linear infinite;
+    }
+    
+    &:hover {
+      border-color: #409eff;
+    }
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

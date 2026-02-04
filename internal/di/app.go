@@ -7,6 +7,7 @@ import (
 	"go_demo/internal/repository"
 	"go_demo/internal/service"
 	"go_demo/pkg/cache"
+	"go_demo/pkg/captcha"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -20,12 +21,13 @@ type ServerApp struct {
 
 // AppDependencies 应用依赖聚合器 // di.AppDependencies
 type AppDependencies struct {
-	Config     *config.Config       // di.AppDependencies.Config
-	DB         *gorm.DB             // di.AppDependencies.DB
-	Cache      cache.CacheInterface // di.AppDependencies.Cache
-	Repository *Repository          // di.AppDependencies.Repository
-	Services   *Services            // di.AppDependencies.Services
-	Handlers   *Handlers            // di.AppDependencies.Handlers
+	Config     *config.Config         // di.AppDependencies.Config
+	DB         *gorm.DB               // di.AppDependencies.DB
+	Cache      cache.CacheInterface   // di.AppDependencies.Cache
+	Captcha    captcha.CaptchaService // di.AppDependencies.Captcha
+	Repository *Repository            // di.AppDependencies.Repository
+	Services   *Services              // di.AppDependencies.Services
+	Handlers   *Handlers              // di.AppDependencies.Handlers
 }
 
 // Repository 仓储层聚合器 // di.Repository
@@ -41,8 +43,9 @@ type Services struct {
 
 // Handlers 处理器层聚合器 // di.Handlers
 type Handlers struct {
-	Auth *handler.AuthHandler // di.Handlers.Auth
-	User *handler.UserHandler // di.Handlers.User
+	Auth    *handler.AuthHandler    // di.Handlers.Auth
+	User    *handler.UserHandler    // di.Handlers.User
+	Captcha *handler.CaptchaHandler // di.Handlers.Captcha
 }
 
 // NewRepository 创建仓储聚合器 // di.NewRepository()
@@ -61,9 +64,10 @@ func NewServices(repo *Repository) *Services {
 }
 
 // NewHandlers 创建处理器聚合器 // di.NewHandlers()
-func NewHandlers(services *Services) *Handlers {
+func NewHandlers(services *Services, captchaService captcha.CaptchaService) *Handlers {
 	return &Handlers{
-		Auth: handler.NewAuthHandler(services.Auth, services.User),
-		User: handler.NewUserHandler(services.User),
+		Auth:    handler.NewAuthHandler(services.Auth, services.User, captchaService),
+		User:    handler.NewUserHandler(services.User),
+		Captcha: handler.NewCaptchaHandler(captchaService),
 	}
 }

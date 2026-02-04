@@ -29,7 +29,8 @@ func InitializeServer(configPath string) (*gin.Engine, error) {
 	}
 	repository := ProvideRepository(db)
 	services := ProvideServices(repository)
-	handlers := ProvideHandlers(services)
+	captchaService := ProvideCaptcha()
+	handlers := ProvideHandlers(services, captchaService)
 	router := ProvideRouter(handlers)
 	engine := ProvideGinEngine(appInit, router)
 	return engine, nil
@@ -51,14 +52,15 @@ func InitializeServerApp(configPath string) (*ServerApp, error) {
 	}
 	repository := ProvideRepository(db)
 	services := ProvideServices(repository)
-	handlers := ProvideHandlers(services)
+	captchaService := ProvideCaptcha()
+	handlers := ProvideHandlers(services, captchaService)
 	router := ProvideRouter(handlers)
 	engine := ProvideGinEngine(appInit, router)
 	cacheInterface, err := ProvideCache(config)
 	if err != nil {
 		return nil, err
 	}
-	appDependencies := ProvideAppDependencies(config, db, cacheInterface, repository, services, handlers)
+	appDependencies := ProvideAppDependencies(config, db, cacheInterface, captchaService, repository, services, handlers)
 	serverApp := ProvideServerApp(engine, appDependencies)
 	return serverApp, nil
 }
@@ -77,10 +79,11 @@ func InitializeApp(configPath string) (*AppDependencies, error) {
 	if err != nil {
 		return nil, err
 	}
+	captchaService := ProvideCaptcha()
 	repository := ProvideRepository(db)
 	services := ProvideServices(repository)
-	handlers := ProvideHandlers(services)
-	appDependencies := ProvideAppDependencies(config, db, cacheInterface, repository, services, handlers)
+	handlers := ProvideHandlers(services, captchaService)
+	appDependencies := ProvideAppDependencies(config, db, cacheInterface, captchaService, repository, services, handlers)
 	return appDependencies, nil
 }
 
@@ -92,6 +95,7 @@ var infrastructureSet = wire.NewSet(
 	ProvideAppInit,
 	ProvideDB,
 	ProvideCache,
+	ProvideCaptcha,
 )
 
 // 业务逻辑集合

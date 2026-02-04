@@ -5,6 +5,7 @@ import (
 	"go_demo/internal/models"
 	"go_demo/internal/service"
 	"go_demo/internal/utils"
+	"go_demo/pkg/captcha"
 	"go_demo/pkg/errors"
 	"go_demo/pkg/logger"
 	"net/http"
@@ -34,15 +35,17 @@ func handleServiceError(c *gin.Context, err error, requestID string) {
 
 // AuthHandler 认证处理器
 type AuthHandler struct {
-	authService service.AuthService
-	userService service.UserService
+	authService    service.AuthService
+	userService    service.UserService
+	captchaService captcha.CaptchaService
 }
 
 // NewAuthHandler 创建认证处理器实例
-func NewAuthHandler(authService service.AuthService, userService service.UserService) *AuthHandler {
+func NewAuthHandler(authService service.AuthService, userService service.UserService, captchaService captcha.CaptchaService) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
-		userService: userService,
+		authService:    authService,
+		userService:    userService,
+		captchaService: captchaService,
 	}
 }
 
@@ -64,6 +67,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// 绑定并验证请求参数
 	var req models.LoginRequest
 	if !middleware.ValidateAndBind(c, &req) {
+		return
+	}
+
+	// 验证验证码
+	if !h.captchaService.Verify(req.CaptchaID, req.Captcha) {
+		logger.Warn("验证码验证失败",
+			logger.String("request_id", requestID),
+			logger.String("captcha_id", req.CaptchaID),
+		)
+		utils.ResponseError(c, http.StatusBadRequest, "验证码错误或已过期")
 		return
 	}
 
@@ -104,6 +117,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if !middleware.ValidateAndBind(c, &req) {
 		return
 	}
+
+	// 验证验证码
+	if !h.captchaService.Verify(req.CaptchaID, req.Captcha) {
+		logger.Warn("验证码验证失败",
+			logger.String("request_id", requestID),
+			logger.String("captcha_id", req.CaptchaID),
+		)
+		utils.ResponseError(c, http.StatusBadRequest, "验证码错误或已过期")
+		return
+	}
+
 	// 调用服务层进行注册
 	user, err := h.authService.Register(c, req)
 	if err != nil {

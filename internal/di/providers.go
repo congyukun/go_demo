@@ -11,6 +11,7 @@ import (
 	"go_demo/internal/router"
 	"go_demo/internal/utils"
 	"go_demo/pkg/cache"
+	"go_demo/pkg/captcha"
 	"go_demo/pkg/database"
 	"go_demo/pkg/logger"
 	"go_demo/pkg/validator"
@@ -88,6 +89,13 @@ func ProvideCache(cfg *config.Config) (cache.CacheInterface, error) {
 	return redisCache, nil
 }
 
+// ===== 验证码服务 =====
+
+// ProvideCaptcha 初始化验证码服务 // di.ProvideCaptcha()
+func ProvideCaptcha() captcha.CaptchaService {
+	return captcha.NewDefaultCaptchaService()
+}
+
 // ===== 业务层聚合 =====
 
 // ProvideRepository 初始化仓储层 // di.ProvideRepository()
@@ -101,15 +109,16 @@ func ProvideServices(repo *Repository) *Services {
 }
 
 // ProvideHandlers 初始化处理器层聚合器 // di.ProvideHandlers()
-func ProvideHandlers(services *Services) *Handlers {
-	return NewHandlers(services)
+func ProvideHandlers(services *Services, captchaService captcha.CaptchaService) *Handlers {
+	return NewHandlers(services, captchaService)
 }
 
 // ProvideAppDependencies 初始化应用依赖聚合器 // di.ProvideAppDependencies()
 func ProvideAppDependencies(
 	cfg *config.Config,
 	db *gorm.DB,
-	cache cache.CacheInterface,
+	cacheService cache.CacheInterface,
+	captchaService captcha.CaptchaService,
 	repo *Repository,
 	services *Services,
 	handlers *Handlers,
@@ -117,7 +126,8 @@ func ProvideAppDependencies(
 	return &AppDependencies{
 		Config:     cfg,
 		DB:         db,
-		Cache:      cache,
+		Cache:      cacheService,
+		Captcha:    captchaService,
 		Repository: repo,
 		Services:   services,
 		Handlers:   handlers,
@@ -128,7 +138,7 @@ func ProvideAppDependencies(
 
 // ProvideRouter 初始化路由器 // di.ProvideRouter()
 func ProvideRouter(handlers *Handlers) *router.Router {
-	return router.NewRouter(handlers.Auth, handlers.User)
+	return router.NewRouter(handlers.Auth, handlers.User, handlers.Captcha)
 }
 
 // ProvideGinEngine 初始化Gin引擎 // di.ProvideGinEngine()

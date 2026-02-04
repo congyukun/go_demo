@@ -6,17 +6,27 @@ import (
 
 // LoginRequest 登录请求结构体
 type LoginRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=20" label:"用户名"`
-	Password string `json:"password" validate:"required,min=6" label:"密码"`
+	Username  string `json:"username" validate:"required,min=3,max=20" label:"用户名"`
+	Password  string `json:"password" validate:"required,min=6" label:"密码"`
+	CaptchaID string `json:"captcha_id" validate:"required" label:"验证码ID"`
+	Captcha   string `json:"captcha" validate:"required,min=4,max=6" label:"验证码"`
 }
 
 // RegisterRequest 注册请求结构体
 type RegisterRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=20" label:"用户名"`
-	Password string `json:"password" validate:"required,min=6" label:"密码"`
-	Email    string `json:"email" validate:"omitempty,email" label:"邮箱"`
-	Name     string `json:"name" validate:"required,min=1,max=50" label:"姓名"`
-	Mobile   string `json:"mobile" validate:"required,mobile" label:"手机号"`
+	Username  string `json:"username" validate:"required,min=3,max=20" label:"用户名"`
+	Password  string `json:"password" validate:"required,min=6" label:"密码"`
+	Email     string `json:"email" validate:"omitempty,email" label:"邮箱"`
+	Name      string `json:"name" validate:"required,min=1,max=50" label:"姓名"`
+	Mobile    string `json:"mobile" validate:"required,mobile" label:"手机号"`
+	CaptchaID string `json:"captcha_id" validate:"required" label:"验证码ID"`
+	Captcha   string `json:"captcha" validate:"required,min=4,max=6" label:"验证码"`
+}
+
+// CaptchaResponse 验证码响应结构体
+type CaptchaResponse struct {
+	CaptchaID string `json:"captcha_id"` // 验证码ID
+	Image     string `json:"image"`      // Base64编码的验证码图片
 }
 
 // Validate 验证注册请求

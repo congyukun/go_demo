@@ -14,16 +14,18 @@ import (
 
 // Router 路由管理器
 type Router struct {
-	engine      *gin.Engine
-	authHandler *handler.AuthHandler
-	userHandler *handler.UserHandler
+	engine         *gin.Engine
+	authHandler    *handler.AuthHandler
+	userHandler    *handler.UserHandler
+	captchaHandler *handler.CaptchaHandler
 }
 
 // NewRouter 创建新的路由管理器
-func NewRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler) *Router {
+func NewRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler, captchaHandler *handler.CaptchaHandler) *Router {
 	return &Router{
-		authHandler: authHandler,
-		userHandler: userHandler,
+		authHandler:    authHandler,
+		userHandler:    userHandler,
+		captchaHandler: captchaHandler,
 	}
 }
 
@@ -94,6 +96,9 @@ func (r *Router) setupAPIRoutes() {
 	// API v1 路由组
 	v1 := r.engine.Group("/api/v1")
 
+	// 验证码路由（公开）
+	r.setupCaptchaRoutes(v1)
+
 	// 认证路由
 	r.setupAuthRoutes(v1)
 
@@ -102,6 +107,17 @@ func (r *Router) setupAPIRoutes() {
 
 	// 可以在这里添加更多的路由组
 	// 例如：r.setupArticleRoutes(v1) 等
+}
+
+// setupCaptchaRoutes 设置验证码路由
+func (r *Router) setupCaptchaRoutes(rg *gin.RouterGroup) {
+	captcha := rg.Group("/captcha")
+	{
+		// 获取验证码（公开接口）
+		captcha.GET("", r.captchaHandler.GetCaptcha)
+		// 验证验证码（仅用于测试）
+		captcha.GET("/verify", r.captchaHandler.VerifyCaptcha)
+	}
 }
 
 // setupAuthRoutes 设置认证路由
